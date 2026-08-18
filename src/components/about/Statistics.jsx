@@ -1,49 +1,48 @@
 import { motion } from "framer-motion";
-import CountUp from "react-countup";
 
 const stats = [
   {
-    value: 2500,
-    suffix: "+",
+    value: "2,500+",
     label: "Properties",
   },
   {
-    value: 1800,
-    suffix: "+",
+    value: "1,800+",
     label: "Happy Clients",
   },
   {
-    value: 150,
-    suffix: "+",
+    value: "150+",
     label: "Property Owners",
   },
   {
-    value: 12,
-    suffix: "+",
+    value: "12+",
     label: "Years Experience",
   },
 ];
 
 const Statistics = () => {
   return (
-    <section className="bg-primary py-20 text-white">
+    <section className="bg-primary py-16 text-white md:py-20">
       <div className="container-custom">
-        <div className="grid gap-10 text-center md:grid-cols-2 lg:grid-cols-4">
-          {stats.map((item, index) => (
+        <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
+          {stats.map((stat, index) => (
             <motion.div
-              key={index}
+              key={stat.label}
+              className="text-center"
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ delay: index * 0.1 }}
+              transition={{
+                duration: 0.6,
+                delay: index * 0.1,
+              }}
             >
-              <h2 className="text-5xl font-bold">
-                <CountUp end={item.value} duration={2.5} />
-
-                {item.suffix}
+              <h2 className="text-4xl font-bold md:text-5xl">
+                {stat.value}
               </h2>
 
-              <p className="mt-3 text-lg text-slate-200">{item.label}</p>
+              <p className="mt-3 text-base text-slate-200 md:text-lg">
+                {stat.label}
+              </p>
             </motion.div>
           ))}
         </div>
