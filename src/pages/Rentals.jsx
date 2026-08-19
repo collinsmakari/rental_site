@@ -6,6 +6,7 @@ import PropertyGrid from "../components/rentals/PropertyGrid";
 import FeaturedRental from "../components/rentals/FeaturedRental";
 import CTA from "../components/home/CTA";
 import Pagination from "../components/rentals/Pagination";
+import properties from "../data/properties";
 
 const Rentals = () => {
   return (
@@ -21,7 +22,7 @@ const Rentals = () => {
 
       <CategoryFilter />
 
-      <PropertyGrid />
+      <PropertyGrid properties={properties} />
       <Pagination />
 
       <FeaturedRental />
