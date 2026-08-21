@@ -19,7 +19,7 @@ const Button = ({
     text-white
     transition-all
     duration-300
-    hover:bg-orange-600
+    
     hover:shadow-lg
     ${className}
   `;

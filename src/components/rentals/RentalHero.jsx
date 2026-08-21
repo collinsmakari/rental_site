@@ -26,9 +26,9 @@ const RentalHero = () => {
         </p>
 
         <div className="mt-8">
-  <Button to="/rentals">
+  {/*<Button to="/rentals">
     Browse Rentals
-  </Button>
+  </Button>*/}
 </div>
       </div>
     </section>

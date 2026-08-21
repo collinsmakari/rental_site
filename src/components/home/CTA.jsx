@@ -43,7 +43,7 @@ const CTA = () => {
 
           <div className="mt-10 flex flex-wrap justify-center gap-5">
             <Link
-              to="/properties"
+              to="/rentals"
               className="inline-flex items-center gap-3 rounded-xl bg-blue-600 px-8 py-4 font-semibold text-white transition hover:bg-blue-700"
             >
               Browse Properties

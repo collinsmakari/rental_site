@@ -1,7 +1,6 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-
 import Layout from "./components/layout/Layout";
-
+import PropertyDetails from "./pages/PropertyDetails";
 import Home from "./pages/Home";
 import About from "./pages/About";
 import Blog from "./pages/Blog";
@@ -18,7 +17,10 @@ function App() {
           <Route path="/about" element={<About />} />
 
           <Route path="/blog" element={<Blog />} />
-
+<Route
+  path="/properties/:id"
+  element={<PropertyDetails />}
+/>
           <Route path="/contact" element={<Contact />} />
           <Route path="/rentals" element={<Rentals />} />
         </Route>

@@ -1,12 +1,12 @@
 import { motion } from "framer-motion";
-import { FaStar } from "react-icons/fa";
+import { FaStar, FaUserCircle } from "react-icons/fa";
 
 const testimonials = [
   {
     id: 1,
     name: "Sarah Johnson",
     role: "Business Executive",
-    image: "/images/testimonials/client-1.jpg",
+    // image: "/images/testimonials/client-1.jpg",
     rating: 5,
     review:
       "The apartment was exactly as advertised. Clean, modern and located close to everything we needed. Booking was simple and customer service was outstanding.",
@@ -15,7 +15,7 @@ const testimonials = [
     id: 2,
     name: "David Kimani",
     role: "Software Engineer",
-    image: "/images/testimonials/client-2.jpg",
+    // image: "/images/testimonials/client-2.jpg",
     rating: 5,
     review:
       "Professional team and excellent communication throughout the rental process. I would definitely recommend them to anyone looking for quality accommodation.",
@@ -24,7 +24,7 @@ const testimonials = [
     id: 3,
     name: "Grace Wanjiku",
     role: "Interior Designer",
-    image: "/images/testimonials/client-3.jpg",
+    // image: "/images/testimonials/client-3.jpg",
     rating: 5,
     review:
       "Beautiful property with premium finishes. The check-in process was smooth and the support team was always available whenever we needed assistance.",
@@ -35,8 +35,26 @@ const Testimonials = () => {
   return (
     <section className="bg-slate-50 py-20">
       <div className="container mx-auto max-w-7xl px-6">
-        {/* Heading */}
-        <div className="mx-auto mb-16 max-w-3xl text-center">
+
+        {/* ================= SECTION HEADING ================= */}
+
+        <motion.div
+          initial={{
+            opacity: 0,
+            y: 40,
+          }}
+          whileInView={{
+            opacity: 1,
+            y: 0,
+          }}
+          transition={{
+            duration: 0.7,
+          }}
+          viewport={{
+            once: true,
+          }}
+          className="mx-auto mb-16 max-w-3xl text-center"
+        >
           <span className="rounded-full bg-emerald-100 px-4 py-2 text-sm font-semibold text-emerald-700">
             Testimonials
           </span>
@@ -45,81 +63,152 @@ const Testimonials = () => {
             What Our Clients Say
           </h2>
 
-          <p className="mt-5 text-lg text-slate-600">
+          <p className="mt-5 text-lg leading-8 text-slate-600">
             We take pride in delivering exceptional rental experiences for
             families, professionals, and businesses.
           </p>
-        </div>
+        </motion.div>
 
-        {/* Cards */}
-        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+        {/* ================= TESTIMONIAL CARDS ================= */}
+
+        <div className="grid items-stretch gap-8 md:grid-cols-2 lg:grid-cols-3">
           {testimonials.map((testimonial, index) => (
             <motion.div
               key={testimonial.id}
-              initial={{ opacity: 0, y: 40 }}
-              whileInView={{ opacity: 1, y: 0 }}
+              initial={{
+                opacity: 0,
+                y: 40,
+              }}
+              whileInView={{
+                opacity: 1,
+                y: 0,
+              }}
               transition={{
                 duration: 0.5,
                 delay: index * 0.15,
               }}
-              viewport={{ once: true }}
-              whileHover={{ y: -8 }}
-              className="rounded-2xl bg-white p-8 shadow-lg transition-shadow duration-300 hover:shadow-2xl"
+              viewport={{
+                once: true,
+              }}
+              whileHover={{
+                y: -8,
+              }}
+              className="flex min-h-[390px] flex-col justify-between rounded-2xl bg-white p-8 shadow-lg transition-shadow duration-300 hover:shadow-2xl"
             >
-              {/* Stars */}
-              <div className="mb-6 flex gap-1 text-yellow-400">
-                {[...Array(testimonial.rating)].map((_, i) => (
-                  <FaStar key={i} />
-                ))}
+
+              {/* ================= TOP CONTENT ================= */}
+
+              <div>
+
+                {/* Stars */}
+                <div className="flex gap-1 text-yellow-400">
+                  {[...Array(testimonial.rating)].map((_, i) => (
+                    <FaStar key={i} />
+                  ))}
+                </div>
+
+                {/* Review */}
+                <p className="mt-8 text-base leading-8 text-slate-600">
+                  "{testimonial.review}"
+                </p>
+
               </div>
 
-              {/* Review */}
-              <p className="mb-8 leading-8 text-slate-600">
-                "{testimonial.review}"
-              </p>
+              {/* ================= USER ================= */}
 
-              {/* User */}
-              <div className="flex items-center gap-4">
-                <img
-                  src={testimonial.image}
-                  alt={testimonial.name}
-                  className="h-16 w-16 rounded-full object-cover"
-                />
+              <div className="mt-10 border-t border-slate-100 pt-6">
+                <div className="flex items-center gap-4">
 
-                <div>
-                  <h4 className="font-semibold text-slate-900">
-                    {testimonial.name}
-                  </h4>
+                  {/* Person Icon */}
+                  <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-emerald-100">
+                    <FaUserCircle className="text-5xl text-emerald-600" />
+                  </div>
 
-                  <p className="text-sm text-slate-500">{testimonial.role}</p>
+                  {/* User Information */}
+                  <div>
+                    <h4 className="font-semibold text-slate-900">
+                      {testimonial.name}
+                    </h4>
+
+                    <p className="mt-1 text-sm text-slate-500">
+                      {testimonial.role}
+                    </p>
+                  </div>
+
                 </div>
               </div>
+
             </motion.div>
           ))}
         </div>
 
-        {/* Bottom Statistics */}
-        <div className="mt-20 grid gap-8 rounded-3xl bg-emerald-600 px-8 py-12 text-center text-white md:grid-cols-4">
+        {/* ================= STATISTICS ================= */}
+
+        <motion.div
+          initial={{
+            opacity: 0,
+            y: 30,
+          }}
+          whileInView={{
+            opacity: 1,
+            y: 0,
+          }}
+          transition={{
+            duration: 0.7,
+            delay: 0.2,
+          }}
+          viewport={{
+            once: true,
+          }}
+          className="mt-20 grid gap-8 rounded-3xl bg-emerald-600 px-8 py-12 text-center text-white md:grid-cols-4"
+        >
+
+          {/* Happy Clients */}
           <div>
-            <h3 className="text-4xl font-bold">5K+</h3>
-            <p className="mt-2">Happy Clients</p>
+            <h3 className="text-4xl font-bold">
+              1200+
+            </h3>
+
+            <p className="mt-2">
+              Happy Clients
+            </p>
           </div>
 
+          {/* Rental Properties */}
           <div>
-            <h3 className="text-4xl font-bold">300+</h3>
-            <p className="mt-2">Rental Properties</p>
+            <h3 className="text-4xl font-bold">
+              500+
+            </h3>
+
+            <p className="mt-2">
+              Rental Properties
+            </p>
           </div>
 
+          {/* Satisfaction */}
           <div>
-            <h3 className="text-4xl font-bold">98%</h3>
-            <p className="mt-2">Customer Satisfaction</p>
+            <h3 className="text-4xl font-bold">
+              98%
+            </h3>
+
+            <p className="mt-2">
+              Customer Satisfaction
+            </p>
           </div>
 
+          {/* Support */}
           <div>
-            <h3 className="text-4xl font-bold">24/7</h3>
-            <p className="mt-2">Customer Support</p>
+            <h3 className="text-4xl font-bold">
+              24/7
+            </h3>
+
+            <p className="mt-2">
+              Customer Support
+            </p>
           </div>
-        </div>
+
+        </motion.div>
+
       </div>
     </section>
   );

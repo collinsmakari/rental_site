@@ -156,7 +156,9 @@ const FeaturedProperties = () => {
                   </div>
                 </div>
 
-                <Button text="View Details" to={`/properties/${property.id}`} />
+               <Button to={`/properties/${property.id}`}>
+  View Details
+</Button>
               </div>
             </motion.article>
           ))}
@@ -165,7 +167,9 @@ const FeaturedProperties = () => {
         {/* Bottom Button */}
 
         <div className="mt-16 text-center">
-          <Button text="View All Properties" to="/properties" />
+          <Button to="/rentals">
+  View All Properties
+</Button>
         </div>
       </div>
     </section>

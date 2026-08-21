@@ -1,34 +1,63 @@
-import SEO from "../components/common/SEO";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
+
 import RentalHero from "../components/rentals/RentalHero";
-import PropertySearch from "../components/rentals/PropertySearch";
 import CategoryFilter from "../components/rentals/CategoryFilter";
 import PropertyGrid from "../components/rentals/PropertyGrid";
-import FeaturedRental from "../components/rentals/FeaturedRental";
-import CTA from "../components/home/CTA";
-import Pagination from "../components/rentals/Pagination";
 import properties from "../data/properties";
-import { useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
 
 const Rentals = () => {
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // URL parameters
+  // ===============================
+  // URL PARAMETERS
+  // ===============================
+
   const urlType = searchParams.get("type") || "";
   const urlLocation = searchParams.get("location") || "";
   const urlMaxPrice = searchParams.get("maxPrice") || "";
 
-  // Search state
+  // ===============================
+  // SEARCH STATE
+  // ===============================
+
   const [location, setLocation] = useState(urlLocation);
   const [maxPrice, setMaxPrice] = useState(urlMaxPrice);
   const [propertyType, setPropertyType] = useState(urlType);
 
-  // Category state
+  // ===============================
+  // CATEGORY STATE
+  // ===============================
+
   const [selectedCategory, setSelectedCategory] = useState(
     urlType || "All"
   );
 
-  // Detect search coming from Home page
+  // ===============================
+  // SCROLL TO RESULTS
+  // ===============================
+
+  useEffect(() => {
+    const hash = window.location.hash;
+
+    if (hash === "#property-results") {
+      const timer = setTimeout(() => {
+        document
+          .getElementById("property-results")
+          ?.scrollIntoView({
+            behavior: "smooth",
+            block: "start",
+          });
+      }, 200);
+
+      return () => clearTimeout(timer);
+    }
+  }, []);
+
+  // ===============================
+  // HANDLE URL SEARCH
+  // ===============================
+
   useEffect(() => {
     if (urlType || urlLocation || urlMaxPrice) {
       setLocation(urlLocation);
@@ -37,21 +66,22 @@ const Rentals = () => {
       setSelectedCategory(urlType || "All");
 
       const timer = setTimeout(() => {
-        const results = document.getElementById("property-results");
-
-        if (results) {
-          results.scrollIntoView({
+        document
+          .getElementById("property-results")
+          ?.scrollIntoView({
             behavior: "smooth",
             block: "start",
           });
-        }
       }, 300);
 
       return () => clearTimeout(timer);
     }
   }, [urlType, urlLocation, urlMaxPrice]);
 
-  // Filter properties
+  // ===============================
+  // FILTER PROPERTIES
+  // ===============================
+
   const filteredProperties = properties.filter((property) => {
     const matchesCategory =
       selectedCategory === "All" ||
@@ -79,7 +109,10 @@ const Rentals = () => {
     );
   });
 
-  // Search button
+  // ===============================
+  // SEARCH
+  // ===============================
+
   const handleSearch = () => {
     const params = {};
 
@@ -100,14 +133,19 @@ const Rentals = () => {
     setSelectedCategory(propertyType || "All");
 
     setTimeout(() => {
-      document.getElementById("property-results")?.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
+      document
+        .getElementById("property-results")
+        ?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
     }, 100);
   };
 
-  // Clear all filters
+  // ===============================
+  // CLEAR FILTERS
+  // ===============================
+
   const handleClearFilters = () => {
     setLocation("");
     setMaxPrice("");
@@ -117,14 +155,19 @@ const Rentals = () => {
     setSearchParams({});
 
     setTimeout(() => {
-      document.getElementById("property-results")?.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
+      document
+        .getElementById("property-results")
+        ?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
     }, 100);
   };
 
-  // Category click
+  // ===============================
+  // CATEGORY CHANGE
+  // ===============================
+
   const handleCategoryChange = (category) => {
     if (category === "All") {
       handleClearFilters();
@@ -149,43 +192,70 @@ const Rentals = () => {
     setSearchParams(params);
 
     setTimeout(() => {
-      document.getElementById("property-results")?.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
+      document
+        .getElementById("property-results")
+        ?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
     }, 100);
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
+
+      {/* ===============================
+          HERO
+      =============================== */}
+
       <RentalHero />
 
-      <main className="mx-auto max-w-7xl px-4 py-10">
-        {/* Search */}
-        <PropertySearch
-          location={location}
-          maxPrice={maxPrice}
-          propertyType={propertyType}
-          onLocationChange={setLocation}
-          onMaxPriceChange={setMaxPrice}
-          onPropertyTypeChange={setPropertyType}
-          onSearch={handleSearch}
-        />
+      {/* ===============================
+          MAIN CONTENT
+      =============================== */}
 
-        {/* Sticky Categories */}
-        <div className="sticky top-20 z-40 -mx-4 mt-8 border-b border-slate-200 bg-gray-50/95 px-4 py-4 shadow-sm backdrop-blur-md">
+      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+
+        {/* ===============================
+            STICKY CATEGORIES
+        =============================== */}
+
+        <div
+          className="
+            sticky
+            top-20
+            z-40
+            -mx-4
+            border-b
+            border-slate-200
+            bg-gray-50/95
+            px-4
+            py-3
+            shadow-sm
+            backdrop-blur-md
+            sm:-mx-6
+            sm:px-6
+            lg:-mx-8
+            lg:px-8
+          "
+        >
           <CategoryFilter
             selectedCategory={selectedCategory}
             onCategoryChange={handleCategoryChange}
           />
         </div>
 
-        {/* Property Results */}
+        {/* ===============================
+            PROPERTY RESULTS
+        =============================== */}
+
         <section
           id="property-results"
-          className="scroll-mt-36"
+          className="scroll-mt-32 pt-5"
         >
-          <div className="mb-5 mt-8">
+
+          {/* Result Count */}
+          <div className="mb-4">
             <p className="text-sm text-slate-500">
               Showing{" "}
               <span className="font-semibold text-slate-800">
@@ -197,7 +267,11 @@ const Rentals = () => {
             </p>
           </div>
 
-          <PropertyGrid properties={filteredProperties} />
+          {/* Property Grid */}
+          <PropertyGrid
+            properties={filteredProperties}
+          />
+
         </section>
       </main>
     </div>

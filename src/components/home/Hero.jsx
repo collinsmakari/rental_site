@@ -218,11 +218,11 @@ const Hero = () => {
 
             <div>
               <h2 className="text-3xl font-bold text-blue-400 sm:text-4xl">
-                25+
+                NAIROBI
               </h2>
 
               <p className="mt-1 text-sm text-slate-300 sm:text-base">
-                Cities
+                City
               </p>
             </div>
           </div>
@@ -232,7 +232,7 @@ const Hero = () => {
 
       {/* ================= SCROLL INDICATOR ================= */}
 
-      <motion.div
+      {/*<motion.div
         animate={{
           y: [0, 10, 0],
         }}
@@ -243,7 +243,7 @@ const Hero = () => {
         className="absolute bottom-5 left-1/2 hidden -translate-x-1/2 sm:block"
       >
         <FaMapMarkerAlt className="text-2xl text-blue-400" />
-      </motion.div>
+      </motion.div>*/}
 
     </section>
   );
