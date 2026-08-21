@@ -6,7 +6,7 @@ const Footer = () => {
     <footer className="bg-slate-950 text-white">
       <div className="mx-auto grid max-w-7xl gap-10 px-6 py-16 md:grid-cols-4">
         <div>
-          <h2 className="text-2xl font-bold">RentEase</h2>
+          <h2 className="text-2xl font-bold">RentMe</h2>
 
           <p className="mt-4 text-slate-400">
             Premium rental solutions for apartments, houses, offices, and
@@ -38,7 +38,7 @@ const Footer = () => {
 
           <ul className="space-y-3 text-slate-400">
             <li>Nairobi, Kenya</li>
-            <li>info@rentease.co.ke</li>
+            <li>info@rentme.co.ke</li>
             <li>+254 700 000000</li>
           </ul>
         </div>
@@ -55,7 +55,7 @@ const Footer = () => {
       </div>
 
       <div className="border-t border-slate-800 py-6 text-center text-sm text-slate-500">
-        © {new Date().getFullYear()} RentEase. All rights reserved.
+        © {new Date().getFullYear()} RentMe. All rights reserved.
       </div>
     </footer>
   );

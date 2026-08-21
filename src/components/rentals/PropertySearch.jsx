@@ -1,4 +1,5 @@
 import Input from "../ui/Input";
+import Button from "../common/Button";
 
 const PropertySearch = ({
   location,
@@ -7,12 +8,20 @@ const PropertySearch = ({
   onLocationChange,
   onMaxPriceChange,
   onPropertyTypeChange,
+  onSearch,
 }) => {
   return (
     <section className="mx-auto max-w-7xl rounded-xl bg-white p-6 shadow-md">
-      <div className="grid items-center gap-4 md:grid-cols-4">
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          onSearch();
+        }}
+        className="grid items-center gap-4 md:grid-cols-4"
+      >
         {/* Location */}
         <Input
+          type="text"
           placeholder="Location"
           value={location}
           onChange={(e) => onLocationChange(e.target.value)}
@@ -40,13 +49,17 @@ const PropertySearch = ({
           <option value="Bedsitter">Bedsitter</option>
           <option value="Studio">Studio</option>
           <option value="Maisonette">Maisonette</option>
+          <option value="Commercial">Commercial</option>
         </select>
 
-        {/* Search indicator */}
-        <div className="flex h-12 items-center justify-center rounded-lg bg-orange-500 px-5 font-medium text-white">
+        {/* Search Button */}
+        <Button
+          type="submit"
+          className="h-12 w-full"
+        >
           Search Properties
-        </div>
-      </div>
+        </Button>
+      </form>
     </section>
   );
 };

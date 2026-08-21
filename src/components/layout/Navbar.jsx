@@ -17,7 +17,7 @@ const Navbar = () => {
     <header className="fixed top-0 left-0 z-50 w-full border-b border-slate-200 bg-white/90 backdrop-blur-md">
       <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-6">
         <NavLink to="/" className="text-2xl font-bold text-slate-900">
-          RentEase
+          RentMe
         </NavLink>
 
         {/* Desktop */}

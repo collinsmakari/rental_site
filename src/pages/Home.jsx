@@ -11,9 +11,9 @@ const Home = () => {
   return (
     <>
       <SEO
-        title="ABC Rentals | Apartments, Houses & Commercial Properties"
-        description="Find apartments, houses and commercial rental properties across Kenya."
-        keywords="apartments for rent Kenya, rental homes, houses, office space"
+        title="RentMe | Apartments, Houses, Bedsitters, Studios & Commercial Properties"
+        description="Find apartments, houses, bedsitters, studios, and commercial rental properties across Kenya."
+        keywords="apartments for rent Kenya, rental homes, houses, bedsitters, studios, commercial properties"
       />
 
       <Hero />

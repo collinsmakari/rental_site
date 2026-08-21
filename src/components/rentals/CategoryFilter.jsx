@@ -11,13 +11,25 @@ const CategoryFilter = ({
   selectedCategory,
   onCategoryChange,
 }) => {
+  const handleCategoryClick = (category) => {
+    onCategoryChange(category);
+
+    // Scroll to property results
+    setTimeout(() => {
+      document.getElementById("property-results")?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }, 100);
+  };
+
   return (
     <div className="flex flex-wrap gap-3">
       {categories.map((category) => (
         <button
           key={category.value}
           type="button"
-          onClick={() => onCategoryChange(category.value)}
+          onClick={() => handleCategoryClick(category.value)}
           className={`rounded-full border px-5 py-2 transition ${
             selectedCategory === category.value
               ? "border-orange-500 bg-orange-500 text-white"

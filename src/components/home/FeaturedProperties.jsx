@@ -5,7 +5,7 @@ import Button from "../common/Button";
 const properties = [
   {
     id: 1,
-    image: "/images/properties/property-1.jpg",
+    image: "/properties/property-1.jpg",
     title: "Luxury Family House",
     location: "Westlands, Nairobi",
     price: "KSh 85,000 / month",
@@ -15,7 +15,7 @@ const properties = [
   },
   {
     id: 2,
-    image: "/images/properties/property-2.jpg",
+    image: "/properties/property-2.jpg",
     title: "Modern Apartment",
     location: "Kilimani, Nairobi",
     price: "KSh 55,000 / month",
@@ -25,7 +25,7 @@ const properties = [
   },
   {
     id: 3,
-    image: "/images/properties/property-3.jpg",
+    image: "/properties/property-3.jpg",
     title: "Executive Office Space",
     location: "Upper Hill, Nairobi",
     price: "KSh 120,000 / month",
@@ -35,7 +35,7 @@ const properties = [
   },
   {
     id: 4,
-    image: "/images/properties/property-4.jpg",
+    image: "/properties/img-1.jpg",
     title: "Luxury Studio Apartment",
     location: "Karen, Nairobi",
     price: "KSh 38,000 / month",
@@ -45,7 +45,7 @@ const properties = [
   },
   {
     id: 5,
-    image: "/images/properties/property-5.jpg",
+    image: "/properties/property-3.jpg",
     title: "Commercial Shop",
     location: "CBD, Nairobi",
     price: "KSh 70,000 / month",
@@ -55,7 +55,7 @@ const properties = [
   },
   {
     id: 6,
-    image: "/images/properties/property-6.jpg",
+    image: "/properties/property-1.jpg",
     title: "Townhouse",
     location: "Runda, Nairobi",
     price: "KSh 150,000 / month",

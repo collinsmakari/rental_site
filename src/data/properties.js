@@ -86,7 +86,7 @@ const properties = [
     area: 650,
     furnished: true,
     featured: true,
-    image: "/properties/apartment-2.jpg",
+    image: "/properties/property-2.jpg",
     description:
       "A stylish furnished apartment located close to shopping malls, restaurants and business centers.",
     amenities: [
