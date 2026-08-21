@@ -12,7 +12,7 @@ const properties = [
     area: 950,
     furnished: true,
     featured: true,
-    image: "/images/properties/property-1.jpg",
+    image: "/properties/property-1.jpg",
     description:
       "A spacious modern apartment with a bright living area, fitted kitchen and secure parking.",
     amenities: [
@@ -37,7 +37,7 @@ const properties = [
     area: 1800,
     furnished: false,
     featured: true,
-    image: "/images/properties/property-2.jpg",
+    image: "/properties/property-2.jpg",
     description:
       "A beautiful family home in a quiet and secure neighborhood with spacious rooms and a private compound.",
     amenities: [
@@ -62,7 +62,7 @@ const properties = [
     area: 350,
     furnished: false,
     featured: false,
-    image: "/images/properties/property-3.jpg",
+    image: "/properties/property-3.jpg",
     description:
       "A clean and affordable bedsitter suitable for students and young professionals.",
     amenities: [
@@ -86,7 +86,7 @@ const properties = [
     area: 650,
     furnished: true,
     featured: true,
-    image: "/images/properties/apartment-2.jpg",
+    image: "/properties/apartment-2.jpg",
     description:
       "A stylish furnished apartment located close to shopping malls, restaurants and business centers.",
     amenities: [
@@ -111,7 +111,7 @@ const properties = [
     area: 2800,
     furnished: false,
     featured: true,
-    image: "/images/properties/house-2.jpg",
+    image: "/properties/property-2.jpg",
     description:
       "A spacious four-bedroom family home with a large compound, garden and ample parking.",
     amenities: [
@@ -136,7 +136,7 @@ const properties = [
     area: 1100,
     furnished: false,
     featured: false,
-    image: "/images/properties/apartment-3.jpg",
+    image: "/properties/property-1.jpg",
     description:
       "Contemporary apartment with spacious bedrooms, modern finishes and excellent security.",
     amenities: [
@@ -161,7 +161,7 @@ const properties = [
     area: 500,
     furnished: true,
     featured: false,
-    image: "/images/properties/studio-1.jpg",
+    image: "/properties/property-2.jpg",
     description:
       "A cozy furnished studio apartment ideal for a professional looking for convenient city living.",
     amenities: [
@@ -185,7 +185,7 @@ const properties = [
     area: 1200,
     furnished: false,
     featured: false,
-    image: "/images/properties/office-1.jpg",
+    image: "/properties/property-3.jpg",
     description:
       "Professional office space suitable for businesses, startups and organizations.",
     amenities: [

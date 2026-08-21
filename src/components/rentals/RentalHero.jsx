@@ -5,7 +5,7 @@ const RentalHero = () => {
   return (
     <section className="relative h-[60vh] overflow-hidden">
       <img
-        src="/images/rentals/rental-hero.jpg"
+        src="/properties/img-1.jpg"
         alt="Rental Properties"
         className="absolute inset-0 h-full w-full object-cover"
       />
@@ -26,8 +26,10 @@ const RentalHero = () => {
         </p>
 
         <div className="mt-8">
-          <Button text="Browse Rentals" />
-        </div>
+  <Button to="/rentals">
+    Browse Rentals
+  </Button>
+</div>
       </div>
     </section>
   );
