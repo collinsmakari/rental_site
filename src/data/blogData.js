@@ -1,7 +1,7 @@
 const blogPosts = [
   {
     id: 1,
-    image: "/images/blog/blog1.jpg",
+    image: "/properties/img-1.jpg",
     title: "10 Tips for Choosing Your First Apartment",
     excerpt:
       "Finding the perfect rental property requires careful planning and budgeting. Here are ten important tips.",
@@ -12,7 +12,7 @@ const blogPosts = [
 
   {
     id: 2,
-    image: "/images/blog/blog2.jpg",
+    image: "/properties/property-1.jpg",
     title: "How to Inspect a Rental Property",
     excerpt:
       "Before signing a lease, inspect every part of the property to avoid future surprises.",
@@ -23,7 +23,7 @@ const blogPosts = [
 
   {
     id: 3,
-    image: "/images/blog/blog3.jpg",
+    image: "/properties/property-2.jpg",
     title: "Benefits of Professional Property Management",
     excerpt:
       "Professional property managers save landlords time while increasing tenant satisfaction.",
@@ -34,7 +34,7 @@ const blogPosts = [
 
   {
     id: 4,
-    image: "/images/blog/blog4.jpg",
+    image: "/properties/property-3.jpg",
     title: "Commercial Property Investment Guide",
     excerpt:
       "Commercial real estate offers long-term returns when managed correctly.",
@@ -45,7 +45,7 @@ const blogPosts = [
 
   {
     id: 5,
-    image: "/images/blog/blog5.jpg",
+    image: "/properties/img-1.jpg",
     title: "Understanding Rental Agreements",
     excerpt:
       "Everything tenants and landlords should know before signing a lease.",
@@ -56,7 +56,7 @@ const blogPosts = [
 
   {
     id: 6,
-    image: "/images/blog/blog6.jpg",
+    image: "/properties/property-2.jpg",
     title: "How to Increase Property Value",
     excerpt:
       "Simple renovations and maintenance practices that boost rental income.",

@@ -3,7 +3,7 @@ import BlogCard from "./BlogCard";
 
 const BlogGrid = ({ posts }) => {
   return (
-    <section className="py-20 bg-slate-50">
+    <section className="py-20 bg-slate-200">
       <div className="container-custom">
         <SectionTitle
           subtitle="Latest Articles"

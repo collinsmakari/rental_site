@@ -4,30 +4,45 @@ import SectionTitle from "../common/SectionTitle";
 
 const team = [
   {
-    name: "John Doe",
+    name: "Collins Makari",
     role: "Managing Director",
-    image: "/images/team/team1.jpg",
+    image: "/properties/property-1.jpg",
+    social: {
+      facebook: "https://facebook.com/",
+      twitter: "https://twitter.com/",
+      linkedin: "https://linkedin.com/",
+    },
   },
   {
-    name: "Jane Smith",
+    name: "Wayne ladislaus",
     role: "Property Manager",
-    image: "/images/team/team2.jpg",
+    image: "/properties/property-2.jpg",
+    social: {
+      facebook: "https://facebook.com/",
+      twitter: "https://twitter.com/",
+      linkedin: "https://linkedin.com/",
+    },
   },
   {
-    name: "Peter Brown",
+    name: "Monica Shiko",
     role: "Sales Consultant",
-    image: "/images/team/team3.jpg",
+    image: "/properties/property-3.jpg",
+    social: {
+      facebook: "https://facebook.com/",
+      twitter: "https://twitter.com/",
+      linkedin: "https://linkedin.com/",
+    },
   },
 ];
 
 const Team = () => {
   return (
-    <section className="py-20 bg-white">
-      <div className="container-custom">
+    <section className="bg-slate-200 py-20">
+      <div className="mx-auto w-full max-w-6xl px-6 lg:px-8">
         <SectionTitle
           subtitle="Our Team"
           title="Meet Our Professionals"
-          center
+          align="center"
         />
 
         <div className="mt-14 grid gap-8 md:grid-cols-2 lg:grid-cols-3">
@@ -47,14 +62,47 @@ const Team = () => {
               />
 
               <div className="p-6">
-                <h3 className="text-xl font-bold">{member.name}</h3>
+                <h3 className="text-xl font-bold text-slate-900">
+                  {member.name}
+                </h3>
 
-                <p className="mt-2 text-primary">{member.role}</p>
+                <p className="mt-2 text-primary">
+                  {member.role}
+                </p>
 
                 <div className="mt-5 flex gap-4 text-lg text-slate-500">
-                  <FaFacebook />
-                  <FaTwitter />
-                  <FaLinkedin />
+                  {/* Facebook */}
+                  <a
+                    href={member.social.facebook}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={`${member.name} Facebook`}
+                    className="transition hover:text-blue-600"
+                  >
+                    <FaFacebook />
+                  </a>
+
+                  {/* Twitter */}
+                  <a
+                    href={member.social.twitter}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={`${member.name} Twitter`}
+                    className="transition hover:text-sky-500"
+                  >
+                    <FaTwitter />
+                  </a>
+
+                  {/* LinkedIn */}
+                  <a
+                    href={member.social.linkedin}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={`${member.name} LinkedIn`}
+                    className="transition hover:text-blue-700"
+                  >
+                    <FaLinkedin />
+                  </a>
                 </div>
               </div>
             </motion.div>

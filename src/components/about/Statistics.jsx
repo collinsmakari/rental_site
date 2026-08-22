@@ -2,11 +2,11 @@ import { motion } from "framer-motion";
 
 const stats = [
   {
-    value: "2,500+",
+    value: "25+",
     label: "Properties",
   },
   {
-    value: "1,800+",
+    value: "300+",
     label: "Happy Clients",
   },
   {
@@ -14,7 +14,7 @@ const stats = [
     label: "Property Owners",
   },
   {
-    value: "12+",
+    value: "5+",
     label: "Years Experience",
   },
 ];

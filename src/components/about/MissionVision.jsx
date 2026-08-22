@@ -22,12 +22,12 @@ const cards = [
 
 const MissionVision = () => {
   return (
-    <section className="bg-slate-50 py-20">
-      <div className="container-custom">
+    <section className="bg-slate-200 py-20">
+      <div className="mx-auto w-full max-w-6xl px-6 lg:px-8">
         <SectionTitle
           subtitle="What Drives Us"
           title="Mission, Vision & Values"
-          center
+          align="center"
         />
 
         <div className="mt-14 grid gap-8 md:grid-cols-2 lg:grid-cols-3">
@@ -40,11 +40,17 @@ const MissionVision = () => {
               transition={{ delay: index * 0.15 }}
               className="rounded-2xl bg-white p-8 shadow-lg transition hover:-translate-y-2"
             >
-              <div className="mb-5 text-4xl text-primary">{item.icon}</div>
+              <div className="mb-5 text-4xl text-primary">
+                {item.icon}
+              </div>
 
-              <h3 className="mb-4 text-2xl font-bold">{item.title}</h3>
+              <h3 className="mb-4 text-2xl font-bold text-slate-900">
+                {item.title}
+              </h3>
 
-              <p className="leading-7 text-slate-600">{item.text}</p>
+              <p className="leading-7 text-slate-600">
+                {item.text}
+              </p>
             </motion.div>
           ))}
         </div>

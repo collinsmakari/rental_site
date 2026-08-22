@@ -27,7 +27,7 @@ const Blog = () => {
         description="Read the latest articles, property investment tips, rental guides, and real estate insights."
       />
 
-      <section className="bg-white py-16">
+      <section className="bg-white py-10">
         <div className="container-custom">
           <Categories
             categories={categories}
