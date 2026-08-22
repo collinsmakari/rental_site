@@ -156,7 +156,10 @@ const FeaturedProperties = () => {
                   </div>
                 </div>
 
-               <Button to={`/properties/${property.id}`}>
+              <Button
+  to={`/rentals/${property.id}`}
+  className="min-w-[180px] bg-blue-600 text-white transition-none hover:!bg-blue-600 focus:!bg-blue-600"
+>
   View Details
 </Button>
               </div>
