@@ -59,7 +59,7 @@ const CTA = () => {
           </div>
 
           {/* Quick Stats */}
-          <div className="mt-14 grid grid-cols-2 gap-8 border-t border-white/10 pt-10 md:grid-cols-4">
+          {/*<div className="mt-14 grid grid-cols-2 gap-8 border-t border-white/10 pt-10 md:grid-cols-4">
             <div>
               <h3 className="text-3xl font-bold text-blue-400">500+</h3>
               <p className="mt-2 text-slate-300">Available Rentals</p>
@@ -79,7 +79,7 @@ const CTA = () => {
               <h3 className="text-3xl font-bold text-blue-400">24/7</h3>
               <p className="mt-2 text-slate-300">Customer Support</p>
             </div>
-          </div>
+          </div>*/}
         </motion.div>
       </div>
     </section>
