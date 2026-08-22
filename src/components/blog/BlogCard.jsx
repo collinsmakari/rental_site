@@ -1,11 +1,17 @@
-import { Link } from "react-router-dom";
 import { FaCalendarAlt, FaArrowRight } from "react-icons/fa";
 
-const BlogCard = ({ image, title, excerpt, category, date, slug }) => {
+const BlogCard = ({
+  image,
+  title,
+  excerpt,
+  category,
+  date,
+  url,
+}) => {
   return (
     <article className="group overflow-hidden rounded-2xl bg-white shadow-lg transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl">
+      
       {/* Image */}
-
       <div className="overflow-hidden">
         <img
           src={image}
@@ -15,7 +21,6 @@ const BlogCard = ({ image, title, excerpt, category, date, slug }) => {
       </div>
 
       {/* Content */}
-
       <div className="p-6">
         <span className="inline-block rounded-full bg-primary/10 px-4 py-1 text-sm font-medium text-primary">
           {category}
@@ -25,7 +30,9 @@ const BlogCard = ({ image, title, excerpt, category, date, slug }) => {
           {title}
         </h3>
 
-        <p className="mt-4 leading-7 text-slate-600">{excerpt}</p>
+        <p className="mt-4 leading-7 text-slate-600">
+          {excerpt}
+        </p>
 
         <div className="mt-6 flex items-center justify-between">
           <div className="flex items-center gap-2 text-sm text-slate-500">
@@ -33,13 +40,16 @@ const BlogCard = ({ image, title, excerpt, category, date, slug }) => {
             {date}
           </div>
 
-          <Link
-            to={`/blog/${slug}`}
-            className="flex items-center gap-2 font-semibold text-primary transition hover:gap-3"
+          {/* External Article */}
+          <a
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 font-semibold text-blue-600 transition hover:text-blue-800"
           >
             Read More
-            <FaArrowRight />
-          </Link>
+            <FaArrowRight className="text-sm" />
+          </a>
         </div>
       </div>
     </article>

@@ -7,7 +7,8 @@ const blogPosts = [
       "Finding the perfect rental property requires careful planning and budgeting. Here are ten important tips.",
     category: "Apartments",
     date: "12 Jan 2026",
-    slug: "10-tips-for-choosing-your-first-apartment",
+    
+    url: "https://example.com/first-apartment-tips",
   },
 
   {
@@ -18,7 +19,8 @@ const blogPosts = [
       "Before signing a lease, inspect every part of the property to avoid future surprises.",
     category: "Guides",
     date: "20 Jan 2026",
-    slug: "inspect-rental-property",
+    
+    url: "https://example.com/inspect-rental-property",
   },
 
   {
@@ -29,7 +31,8 @@ const blogPosts = [
       "Professional property managers save landlords time while increasing tenant satisfaction.",
     category: "Property Management",
     date: "28 Jan 2026",
-    slug: "benefits-of-property-management",
+    
+    url: "https://example.com/property-management",
   },
 
   {
@@ -40,7 +43,8 @@ const blogPosts = [
       "Commercial real estate offers long-term returns when managed correctly.",
     category: "Investment",
     date: "5 Feb 2026",
-    slug: "commercial-property-investment-guide",
+   
+    url: "https://example.com/commercial-property-investment",
   },
 
   {
@@ -51,7 +55,8 @@ const blogPosts = [
       "Everything tenants and landlords should know before signing a lease.",
     category: "Guides",
     date: "15 Feb 2026",
-    slug: "understanding-rental-agreements",
+    
+    url: "https://swkadvocates.com/tenancy-agreement-in-kenya",
   },
 
   {
@@ -62,7 +67,8 @@ const blogPosts = [
       "Simple renovations and maintenance practices that boost rental income.",
     category: "Investment",
     date: "22 Feb 2026",
-    slug: "increase-property-value",
+    
+    url: "https://example.com/increase-property-value",
   },
 ];
 

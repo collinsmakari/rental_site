@@ -3,12 +3,12 @@ import BlogCard from "./BlogCard";
 
 const BlogGrid = ({ posts }) => {
   return (
-    <section className="py-20 bg-slate-200">
-      <div className="container-custom">
+    <section className="bg-slate-200 py-20">
+      <div className="mx-auto w-full max-w-6xl px-6 lg:px-8">
         <SectionTitle
           subtitle="Latest Articles"
           title="Learn More About Real Estate"
-          center
+          align="center"
         />
 
         <div className="mt-14 grid gap-8 md:grid-cols-2 lg:grid-cols-3">
@@ -20,7 +20,7 @@ const BlogGrid = ({ posts }) => {
               excerpt={post.excerpt}
               category={post.category}
               date={post.date}
-              slug={post.slug}
+              url={post.url}
             />
           ))}
         </div>
