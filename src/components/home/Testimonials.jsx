@@ -166,7 +166,7 @@ const Testimonials = () => {
           {/* Happy Clients */}
           <div>
             <h3 className="text-4xl font-bold">
-              1200+
+              300+
             </h3>
 
             <p className="mt-2">
@@ -177,7 +177,7 @@ const Testimonials = () => {
           {/* Rental Properties */}
           <div>
             <h3 className="text-4xl font-bold">
-              500+
+              25+
             </h3>
 
             <p className="mt-2">

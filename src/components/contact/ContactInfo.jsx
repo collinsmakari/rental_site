@@ -21,7 +21,7 @@ const ContactInfo = () => {
       <InfoCard
         icon={<FaMapMarkerAlt />}
         title="Office Address"
-        text="Westlands, Nairobi, Kenya"
+        text="Donholm, Nairobi, Kenya"
       />
 
       <InfoCard icon={<FaPhoneAlt />} title="Phone" text="+254 700 123 456" />
@@ -29,7 +29,7 @@ const ContactInfo = () => {
       <InfoCard
         icon={<FaEnvelope />}
         title="Email"
-        text="info@rentalcompany.com"
+        text="info@rentmerentals.com"
       />
 
       <InfoCard

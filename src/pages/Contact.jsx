@@ -27,7 +27,7 @@ const Contact = () => {
       </section>
 
       {/* Google Map */}
-      <GoogleMap />
+      {/*<GoogleMap />*/}
     </>
   );
 };
