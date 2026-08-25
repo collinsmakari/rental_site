@@ -4,7 +4,10 @@ const categories = [
   { label: "Houses", value: "House" },
   { label: "Bedsitters", value: "Bedsitter" },
   { label: "Studios", value: "Studio" },
-  { label: "Maisonettes", value: "Maisonette" },
+  { label: "Commercials", value: "Commercial" },
+  { label: "Offices", value: "Office" },
+  { label: "Maisonette", value: "Maisonette" },
+  { label: "AirBnBs", value: "AirBnB" },
 ];
 
 const CategoryFilter = ({

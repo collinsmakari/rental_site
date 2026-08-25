@@ -119,7 +119,7 @@ const properties = [
     title: "Affordable Bedsitter",
     category: "Bedsitter",
 
-    image: "/properties/property-3.jpg",
+    image: "/properties/Bedsitters/bedsitter-1.jpg",
 
     location: "Kasarani, Nairobi",
 
@@ -144,9 +144,9 @@ const properties = [
     // PROTECTED INFORMATION
 
     images: [
-      "/properties/property-3.jpg",
-      "/properties/property-1.jpg",
-      "/properties/property-2.jpg",
+      "/properties/Bedsitters/bedsitter-1.jpg",
+      "/properties/Bedsitters/bedsitter-2.jpg",
+      "/properties/Bedsitters/bedsitter-3.jpg",
     ],
 
     video: "/videos/property-3.mp4",
@@ -286,7 +286,7 @@ const properties = [
     title: "Commercial Office Space",
     category: "Commercial",
 
-    image: "/properties/property-6.jpg",
+    image: "/properties/property-3.jpg",
 
     location: "Upper Hill, Nairobi",
 
@@ -313,9 +313,63 @@ const properties = [
     // PROTECTED INFORMATION
 
     images: [
-      "/properties/property-6.jpg",
+      "/properties/property-3.jpg",
       "/properties/property-1.jpg",
       "/properties/property-2.jpg",
+    ],
+
+    video: "/videos/property-6.mp4",
+
+    mapUrl:
+      "https://www.google.com/maps/embed?pb=YOUR_EXACT_PROPERTY_MAP_LINK",
+
+    landlord: {
+      name: "Collins Makari",
+      phone: "+254 755 000 000",
+      email: "info@example.com",
+    },
+  },
+  // ============================================================
+  // PROPERTY 6
+  // ============================================================
+
+  {
+    id: 7,
+
+    // PUBLIC INFORMATION
+
+    title: "AIRBNB",
+    category: "AirBnB",
+
+    image: "/properties/Airbnbs/airbnb-1.jpg",
+
+    location: "Upper Hill, Nairobi",
+
+    price: 120000,
+    period: "month",
+
+    bedrooms: 0,
+    bathrooms: 2,
+    area: "2,000",
+
+    description:
+      "A modern Airbnb property located in Nairobi's Upper Hill business district. The space is suitable for travelers, tourists, and visitors looking for a comfortable and convenient place to stay.",
+
+    amenities: [
+      "Parking",
+      "Security",
+      "CCTV",
+      "Elevator",
+      "Backup Generator",
+      "High-Speed Internet",
+    ],
+
+    // PROTECTED INFORMATION
+
+    images: [
+      "/properties/Airbnbs/airbnb-1.jpg",
+      "/properties/Airbnbs/airbnb-2.jpg",
+      "/properties/Airbnbs/airbnb-3.jpg",
     ],
 
     video: "/videos/property-6.mp4",
