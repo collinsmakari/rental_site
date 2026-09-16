@@ -8,7 +8,7 @@ import {
 } from "react-icons/fa";
 import Button from "../common/Button";
 
-const API_URL = "http://localhost:5000/api/properties";
+const API_URL = `${import.meta.env.VITE_API_URL}/api/properties`;
 
 const FeaturedProperties = () => {
   const [properties, setProperties] = useState([]);

@@ -5,7 +5,7 @@ import RentalHero from "../components/rentals/RentalHero";
 import CategoryFilter from "../components/rentals/CategoryFilter";
 import PropertyGrid from "../components/rentals/PropertyGrid";
 
-const API_URL = "http://localhost:5000/api/properties";
+const API_URL = `${import.meta.env.VITE_API_URL}/api/properties`;
 
 const Rentals = () => {
   const [searchParams, setSearchParams] = useSearchParams();
