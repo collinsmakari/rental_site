@@ -1,5 +1,5 @@
-
-import { useEffect, useState } from "react";import { Link, useParams } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useParams } from "react-router-dom";
 import {
   FaBed,
   FaBath,
@@ -15,88 +15,56 @@ import {
   FaVideo,
 } from "react-icons/fa";
 
-const API_URL =
-  import.meta.env.VITE_API_URL;
+const API_URL = import.meta.env.VITE_API_URL;
 
 const PropertyDetails = () => {
   const { id } = useParams();
-
-  // ==========================================
-  // PROPERTY STATE
-  // ==========================================
 
   const [property, setProperty] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // ==========================================
-  // PAYMENT STATE
-  // ==========================================
+  // Payment states
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [paymentId, setPaymentId] = useState(null);
+  const [paymentStatus, setPaymentStatus] = useState(null);
+  const [paymentLoading, setPaymentLoading] = useState(false);
+  const [paymentError, setPaymentError] = useState("");
 
-  const [showPaymentModal, setShowPaymentModal] =
-    useState(false);
+  // Unlock states
+  const [unlocked, setUnlocked] = useState(false);
+  const [unlockLoading, setUnlockLoading] = useState(false);
 
-  const [phoneNumber, setPhoneNumber] =
-    useState("");
-
-  const [paymentId, setPaymentId] =
-    useState(null);
-
-  const [paymentStatus, setPaymentStatus] =
-    useState(null);
-
-  const [paymentLoading, setPaymentLoading] =
-    useState(false);
-
-  const [paymentError, setPaymentError] =
-    useState("");
-
-  const [unlocked, setUnlocked] =
-    useState(false);
-
-  const [unlockLoading, setUnlockLoading] =
-    useState(false);
-
-  // ==========================================
-  // FETCH PUBLIC PROPERTY
-  // ==========================================
-
+  // --------------------------------------------------
+  // FETCH PUBLIC PROPERTY DETAILS
+  // --------------------------------------------------
   useEffect(() => {
     const fetchProperty = async () => {
       try {
         setLoading(true);
         setError("");
 
-        const response = await fetch(
-          `${API_URL}/api/properties/${id}`
-        );
+        const response = await fetch(`${API_URL}/api/properties/${id}`);
 
         const data = await response.json();
 
         if (!response.ok || !data.success) {
           throw new Error(
-            data.message ||
-              "Failed to fetch property"
+            data.message || "Failed to load property details."
           );
         }
 
-        console.log("Property received from MongoDB:", data.property);
+        console.log("Property loaded:", data.property);
         console.log(
-          "Viewing fee received:",
+          "Viewing fee from MongoDB:",
           data.property?.viewingFee
         );
 
         setProperty(data.property);
-      } catch (error) {
-        console.error(
-          "Fetch property error:",
-          error
-        );
-
-        setError(
-          error.message ||
-            "Failed to load property"
-        );
+      } catch (err) {
+        console.error("Property fetch error:", err);
+        setError(err.message || "Failed to load property.");
       } finally {
         setLoading(false);
       }
@@ -107,58 +75,318 @@ const PropertyDetails = () => {
     }
   }, [id]);
 
-  // ==========================================
-  // PROPERTY DATA
-  // ==========================================
+  // --------------------------------------------------
+  // VIEWING FEE FROM MONGODB
+  // --------------------------------------------------
+  const propertyViewingFee = Number(property?.viewingFee || 0);
 
-  /*
-   * IMPORTANT:
-   * viewingFee comes directly from the property
-   * returned by MongoDB.
-   *
-   * There is NO hardcoded viewing fee here.
-   */
+  // --------------------------------------------------
+  // INITIATE M-PESA PAYMENT
+  // --------------------------------------------------
+  const initiatePayment = async (e) => {
+    e.preventDefault();
 
-  const propertyViewingFee = Number(
-    property?.viewingFee || 0
-  );
-
-  // ==========================================
-  // OPEN PAYMENT MODAL
-  // ==========================================
-
-  const openPaymentModal = () => {
-    // Make sure MongoDB supplied a valid fee
-    if (
-      !propertyViewingFee ||
-      propertyViewingFee <= 0
-    ) {
-      setPaymentError(
-        "This property does not have a valid viewing fee."
-      );
-
+    if (!phoneNumber.trim()) {
+      setPaymentError("Please enter your M-Pesa phone number.");
       return;
     }
 
+    if (!property?._id) {
+      setPaymentError("Property information is not available.");
+      return;
+    }
+
+    if (!propertyViewingFee || propertyViewingFee <= 0) {
+      setPaymentError("Viewing fee is not available for this property.");
+      return;
+    }
+
+    try {
+      setPaymentLoading(true);
+      setPaymentError("");
+      setPaymentStatus(null);
+
+      console.log("Initiating payment...");
+      console.log("Property ID:", property._id);
+      console.log("Viewing fee:", propertyViewingFee);
+
+      const response = await fetch(`${API_URL}/api/payments/initiate`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          propertyId: property._id,
+          phoneNumber: phoneNumber.trim(),
+        }),
+      });
+
+      const data = await response.json();
+
+      console.log("Payment initiation response:", data);
+
+      if (!response.ok || !data.success) {
+        throw new Error(
+          data.message || "Failed to initiate M-Pesa payment."
+        );
+      }
+
+      setPaymentId(data.paymentId);
+      setPaymentStatus(data.status || "pending");
+
+      console.log("Payment initiated successfully.");
+      console.log("Payment ID:", data.paymentId);
+      console.log("Payment amount:", data.amount);
+      console.log("Checkout Request ID:", data.checkoutRequestId);
+    } catch (err) {
+      console.error("Payment initiation error:", err);
+
+      setPaymentError(
+        err.message || "Failed to initiate M-Pesa payment."
+      );
+      setPaymentStatus("failed");
+    } finally {
+      setPaymentLoading(false);
+    }
+  };
+
+  // --------------------------------------------------
+  // UNLOCK PROPERTY AFTER SUCCESSFUL PAYMENT
+  // --------------------------------------------------
+  const unlockProperty = async (completedPaymentId) => {
+    if (!completedPaymentId || !id) {
+      console.error("Missing payment ID or property ID.");
+      return false;
+    }
+
+    try {
+      setUnlockLoading(true);
+      setPaymentError("");
+
+      const unlockUrl = `${API_URL}/api/properties/${id}/unlocked?paymentId=${completedPaymentId}`;
+
+      console.log("=================================");
+      console.log("UNLOCKING PROPERTY");
+      console.log("Property ID:", id);
+      console.log("Payment ID:", completedPaymentId);
+      console.log("Unlock URL:", unlockUrl);
+
+      const response = await fetch(unlockUrl);
+
+      console.log("Unlock response status:", response.status);
+
+      const data = await response.json();
+
+      console.log("Unlock response:", data);
+
+      if (!response.ok || !data.success) {
+        throw new Error(
+          data.message || "Unable to unlock property details."
+        );
+      }
+
+      const protectedDetails = data.protectedDetails;
+
+      if (!protectedDetails) {
+        throw new Error(
+          "Payment was successful, but protected property details were not returned."
+        );
+      }
+
+      console.log("Protected details received:", protectedDetails);
+
+      // Merge protected details into the existing property
+      setProperty((currentProperty) => ({
+        ...currentProperty,
+
+        images:
+          protectedDetails.images?.length > 0
+            ? protectedDetails.images
+            : currentProperty?.images || [],
+
+        videos:
+          protectedDetails.videos?.length > 0
+            ? protectedDetails.videos
+            : currentProperty?.videos || [],
+
+        mapUrl:
+          protectedDetails.mapUrl ||
+          currentProperty?.mapUrl ||
+          null,
+
+        landlordName:
+          protectedDetails.landlordName ||
+          currentProperty?.landlordName ||
+          null,
+
+        landlordPhone:
+          protectedDetails.landlordPhone ||
+          currentProperty?.landlordPhone ||
+          null,
+
+        landlordEmail:
+          protectedDetails.landlordEmail ||
+          currentProperty?.landlordEmail ||
+          null,
+
+        caretakerName:
+          protectedDetails.caretakerName ||
+          currentProperty?.caretakerName ||
+          null,
+
+        caretakerPhone:
+          protectedDetails.caretakerPhone ||
+          currentProperty?.caretakerPhone ||
+          null,
+      }));
+
+      setUnlocked(true);
+
+      console.log("=================================");
+      console.log("PROPERTY UNLOCKED SUCCESSFULLY");
+      console.log("=================================");
+
+      return true;
+    } catch (err) {
+      console.error("Property unlock error:", err);
+
+      setPaymentError(
+        err.message ||
+          "Payment was successful, but the property details could not be unlocked."
+      );
+
+      return false;
+    } finally {
+      setUnlockLoading(false);
+    }
+  };
+
+  // --------------------------------------------------
+  // CHECK M-PESA PAYMENT STATUS
+  // --------------------------------------------------
+  useEffect(() => {
+    if (!paymentId) return;
+
+    let interval = null;
+    let stopped = false;
+
+    const checkStatus = async () => {
+      try {
+        const statusUrl = `${API_URL}/api/payments/status/${paymentId}`;
+
+        console.log("Checking payment status...");
+        console.log("Payment status URL:", statusUrl);
+
+        const response = await fetch(statusUrl);
+
+        const data = await response.json();
+
+        console.log("Payment status response:", data);
+
+        if (!response.ok || !data.success) {
+          throw new Error(
+            data.message || "Failed to check payment status."
+          );
+        }
+
+        const status = data.payment?.status;
+
+        console.log("Current payment status:", status);
+
+        if (stopped) return;
+
+        setPaymentStatus(status);
+
+        // ---------------------------------------------
+        // PAYMENT COMPLETED
+        // ---------------------------------------------
+        if (status === "completed") {
+          console.log("Payment completed.");
+
+          // Stop polling immediately
+          if (interval) {
+            clearInterval(interval);
+            interval = null;
+          }
+
+          if (stopped) return;
+
+          // Unlock the property
+          const unlockedSuccessfully = await unlockProperty(paymentId);
+
+          if (unlockedSuccessfully) {
+            console.log("Unlock completed successfully.");
+
+            // Give user time to see success message
+            setTimeout(() => {
+              setShowPaymentModal(false);
+            }, 1500);
+          }
+
+          return;
+        }
+
+        // ---------------------------------------------
+        // PAYMENT FAILED
+        // ---------------------------------------------
+        if (status === "failed") {
+          console.log("Payment failed.");
+
+          if (interval) {
+            clearInterval(interval);
+            interval = null;
+          }
+
+          setPaymentError(
+            data.payment?.resultDescription ||
+              "Payment failed or was cancelled."
+          );
+
+          return;
+        }
+      } catch (err) {
+        console.error("Payment status error:", err);
+
+        if (!stopped) {
+          setPaymentError(
+            err.message || "Unable to check payment status."
+          );
+        }
+      }
+    };
+
+    // Check immediately
+    checkStatus();
+
+    // Continue checking every 3 seconds
+    interval = setInterval(checkStatus, 3000);
+
+    return () => {
+      stopped = true;
+
+      if (interval) {
+        clearInterval(interval);
+        interval = null;
+      }
+    };
+  }, [paymentId]);
+
+  // --------------------------------------------------
+  // OPEN PAYMENT MODAL
+  // --------------------------------------------------
+  const openPaymentModal = () => {
     setPaymentError("");
     setPaymentStatus(null);
+    setPaymentId(null);
     setPhoneNumber("");
     setShowPaymentModal(true);
   };
 
-  // ==========================================
+  // --------------------------------------------------
   // CLOSE PAYMENT MODAL
-  // ==========================================
-
+  // --------------------------------------------------
   const closePaymentModal = () => {
-    if (paymentLoading) {
-      return;
-    }
-
-    if (
-      paymentStatus === "pending" ||
-      unlockLoading
-    ) {
+    if (paymentLoading || unlockLoading) {
       return;
     }
 
@@ -166,317 +394,37 @@ const PropertyDetails = () => {
     setPaymentError("");
   };
 
-  // ==========================================
-  // INITIATE M-PESA PAYMENT
-  // ==========================================
-
-  const initiatePayment = async (event) => {
-    event.preventDefault();
-
-    setPaymentError("");
-
-    // Validate viewing fee
-    if (
-      !propertyViewingFee ||
-      propertyViewingFee <= 0
-    ) {
-      setPaymentError(
-        "This property does not have a valid viewing fee."
-      );
-
-      return;
-    }
-
-    if (!phoneNumber.trim()) {
-      setPaymentError(
-        "Please enter your M-Pesa phone number."
-      );
-
-      return;
-    }
-
-    setPaymentLoading(true);
-    setPaymentStatus("initiating");
-
-    try {
-      /*
-       * IMPORTANT:
-       *
-       * We intentionally DO NOT send the viewing fee
-       * from the frontend.
-       *
-       * The backend receives propertyId and looks up
-       * the viewingFee directly from MongoDB.
-       *
-       * This prevents users from manipulating the
-       * payment amount in the browser.
-       */
-
-      const response = await fetch(
-        `${API_URL}/api/payments/initiate`,
-        {
-          method: "POST",
-
-          headers: {
-            "Content-Type": "application/json",
-          },
-
-          body: JSON.stringify({
-            propertyId: id,
-            phoneNumber: phoneNumber.trim(),
-          }),
-        }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok || !data.success) {
-        throw new Error(
-          data.message ||
-            "Failed to initiate M-Pesa payment"
-        );
-      }
-
-      console.log(
-        "Payment initiated:",
-        data
-      );
-
-      // Save payment ID
-      setPaymentId(data.paymentId);
-
-      setPaymentStatus("pending");
-    } catch (error) {
-      console.error(
-        "Payment initiation error:",
-        error
-      );
-
-      setPaymentError(
-        error.message ||
-          "Failed to initiate payment"
-      );
-
-      setPaymentStatus(null);
-    } finally {
-      setPaymentLoading(false);
-    }
-  };
-
-  // ==========================================
-  // UNLOCK PROTECTED PROPERTY
-  // ==========================================
-
-  const unlockProperty = async (
-    completedPaymentId
-  ) => {
-    try {
-      setUnlockLoading(true);
-
-      const response = await fetch(
-        `${API_URL}/api/properties/${id}/unlocked?paymentId=${completedPaymentId}`
-      );
-
-      const data = await response.json();
-
-      if (!response.ok || !data.success) {
-        throw new Error(
-          data.message ||
-            "Failed to unlock property details"
-        );
-      }
-
-      console.log(
-        "Protected property data:",
-        data
-      );
-
-      // ------------------------------------------
-      // Merge protected information into property
-      // ------------------------------------------
-
-      setProperty((currentProperty) => ({
-        ...currentProperty,
-
-        images:
-          data.protectedDetails?.images ||
-          currentProperty.images ||
-          [],
-
-        videos:
-          data.protectedDetails?.videos ||
-          currentProperty.videos ||
-          [],
-
-        mapUrl:
-          data.protectedDetails?.mapUrl ||
-          currentProperty.mapUrl,
-
-        landlordName:
-          data.protectedDetails?.landlordName ||
-          currentProperty.landlordName,
-
-        landlordPhone:
-          data.protectedDetails?.landlordPhone ||
-          currentProperty.landlordPhone,
-
-        landlordEmail:
-          data.protectedDetails?.landlordEmail ||
-          currentProperty.landlordEmail,
-
-        caretakerName:
-          data.protectedDetails?.caretakerName ||
-          currentProperty.caretakerName,
-
-        caretakerPhone:
-          data.protectedDetails?.caretakerPhone ||
-          currentProperty.caretakerPhone,
-      }));
-
-      setUnlocked(true);
-    } catch (error) {
-      console.error(
-        "Unlock property error:",
-        error
-      );
-
-      setPaymentError(
-        error.message ||
-          "Payment was successful, but the property details could not be unlocked."
-      );
-    } finally {
-      setUnlockLoading(false);
-    }
-  };
-
-  // ==========================================
-  // POLL PAYMENT STATUS
-  // ==========================================
-
-  useEffect(() => {
-    if (!paymentId) {
-      return;
-    }
-
-    let interval;
-
-    const checkStatus = async () => {
-      try {
-        const response = await fetch(
-          `${API_URL}/api/payments/status/${paymentId}`
-        );
-
-        const data = await response.json();
-
-        if (!response.ok || !data.success) {
-          throw new Error(
-            data.message ||
-              "Failed to check payment status"
-          );
-        }
-
-        console.log(
-          "Payment status:",
-          data.payment.status
-        );
-
-        setPaymentStatus(
-          data.payment.status
-        );
-
-        // ==========================================
-        // PAYMENT COMPLETED
-        // ==========================================
-
-        if (
-          data.payment.status ===
-          "completed"
-        ) {
-          clearInterval(interval);
-
-          // Unlock protected information
-          await unlockProperty(paymentId);
-
-          setTimeout(() => {
-            setShowPaymentModal(false);
-          }, 1500);
-        }
-
-        // ==========================================
-        // PAYMENT FAILED
-        // ==========================================
-
-        if (
-          data.payment.status ===
-          "failed"
-        ) {
-          clearInterval(interval);
-
-          setPaymentError(
-            data.payment.resultDesc ||
-              "Payment failed or was cancelled."
-          );
-        }
-      } catch (error) {
-        console.error(
-          "Payment status error:",
-          error
-        );
-      }
-    };
-
-    // Check immediately
-    checkStatus();
-
-    // Then every 3 seconds
-    interval = setInterval(
-      checkStatus,
-      3000
-    );
-
-    return () => {
-      clearInterval(interval);
-    };
-  }, [paymentId]);
-
-  // ==========================================
-  // LOADING
-  // ==========================================
-
+  // --------------------------------------------------
+  // LOADING STATE
+  // --------------------------------------------------
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
+      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
         <div className="text-center">
-          <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-gray-200 border-t-blue-600" />
+          <div className="w-10 h-10 border-4 border-gray-700 border-t-blue-500 rounded-full animate-spin mx-auto mb-4"></div>
 
-          <p className="mt-4 text-gray-600">
-            Loading property...
+          <p className="text-gray-400">
+            Loading property details...
           </p>
         </div>
       </div>
     );
   }
 
-  // ==========================================
-  // ERROR
-  // ==========================================
-
+  // --------------------------------------------------
+  // ERROR STATE
+  // --------------------------------------------------
   if (error || !property) {
     return (
-      <div className="flex min-h-screen items-center justify-center px-4">
+      <div className="min-h-screen bg-gray-950 flex items-center justify-center px-4">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900">
-            Property Not Found
-          </h2>
-
-          <p className="mt-2 text-gray-500">
-            {error ||
-              "The property you're looking for does not exist."}
+          <p className="text-red-400 mb-5">
+            {error || "Property not found."}
           </p>
 
           <Link
             to="/rentals"
-            className="mt-6 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-3 font-semibold text-white hover:bg-blue-700"
+            className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-lg transition"
           >
             <FaArrowLeft />
             Back to Rentals
@@ -486,10 +434,9 @@ const PropertyDetails = () => {
     );
   }
 
-  // ==========================================
+  // --------------------------------------------------
   // PROPERTY DATA
-  // ==========================================
-
+  // --------------------------------------------------
   const {
     title,
     propertyType,
@@ -498,857 +445,566 @@ const PropertyDetails = () => {
     bedrooms,
     bathrooms,
     area,
-    description,
     furnished,
     featured,
-    images,
-    videos,
+    description,
+    amenities = [],
+    images = [],
+    videos = [],
+    mapUrl,
     landlordName,
     landlordPhone,
     landlordEmail,
     caretakerName,
     caretakerPhone,
-    mapUrl,
     available,
   } = property;
 
-  const mainImage =
-    images?.length > 0
-      ? images[0]
-      : "/properties/property-placeholder.jpg";
-
-  const additionalImages =
-    images?.slice(1) || [];
-
-  // ==========================================
-  // RENDER
-  // ==========================================
-
   return (
-    <div className="bg-gray-50">
-      <section className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
-
-        {/* ==========================================
-            BACK
-        ========================================== */}
-
+    <div className="min-h-screen bg-gray-950 text-white">
+      {/* --------------------------------------------- */}
+      {/* HEADER */}
+      {/* --------------------------------------------- */}
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
         <Link
           to="/rentals#property-results"
-          className="mb-6 inline-flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-700"
+          className="inline-flex items-center gap-2 text-gray-400 hover:text-blue-400 transition mb-6"
         >
           <FaArrowLeft />
           Back to Rentals
         </Link>
+      </div>
 
-        {/* ==========================================
-            MAIN PROPERTY IMAGE
-        ========================================== */}
-
-        <div className="relative overflow-hidden rounded-2xl">
+      {/* --------------------------------------------- */}
+      {/* MAIN CONTENT */}
+      {/* --------------------------------------------- */}
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
+        {/* Main Image */}
+        <div className="relative rounded-2xl overflow-hidden bg-gray-900 mb-8">
           <img
-            src={mainImage}
+            src={
+              images?.[0]
+                ? images[0].startsWith("http")
+                  ? images[0]
+                  : images[0]
+                : "/images/placeholder.jpg"
+            }
             alt={title}
-            className="h-[420px] w-full object-cover md:h-[550px]"
+            className="w-full h-[300px] sm:h-[450px] object-cover"
           />
 
-          <div className="absolute left-5 top-5 rounded-full bg-blue-600 px-4 py-2 text-sm font-semibold text-white">
-            {propertyType}
-          </div>
+          <div className="absolute top-4 left-4 flex gap-2 flex-wrap">
+            <span className="bg-blue-600 text-white px-3 py-1.5 rounded-full text-sm font-medium">
+              {propertyType}
+            </span>
 
-          {featured && (
-            <div className="absolute right-5 top-5 rounded-full bg-white px-4 py-2 text-sm font-semibold text-blue-600 shadow">
-              Featured
-            </div>
-          )}
-
-          {!available && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black/50">
-              <span className="rounded-lg bg-red-600 px-6 py-3 text-lg font-bold text-white">
-                Not Available
+            {featured && (
+              <span className="bg-yellow-500 text-gray-950 px-3 py-1.5 rounded-full text-sm font-medium">
+                Featured
               </span>
-            </div>
-          )}
+            )}
+
+            <span
+              className={`px-3 py-1.5 rounded-full text-sm font-medium ${
+                available
+                  ? "bg-green-600 text-white"
+                  : "bg-red-600 text-white"
+              }`}
+            >
+              {available ? "Available" : "Not Available"}
+            </span>
+          </div>
         </div>
 
-        {/* ==========================================
-            PROPERTY INFORMATION
-        ========================================== */}
+        {/* --------------------------------------------- */}
+        {/* TITLE + LOCATION */}
+        {/* --------------------------------------------- */}
+        <div className="mb-8">
+          <h1 className="text-3xl sm:text-4xl font-bold mb-3">
+            {title}
+          </h1>
 
-        <div className="mt-8 grid gap-8 lg:grid-cols-3">
+          <div className="flex items-center gap-2 text-gray-400">
+            <FaMapMarkerAlt className="text-blue-400" />
+            <span>{location}</span>
+          </div>
+        </div>
 
-          {/* ==========================================
-              MAIN INFORMATION
-          ========================================== */}
+        {/* --------------------------------------------- */}
+        {/* PROPERTY INFO */}
+        {/* --------------------------------------------- */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-10">
+          <div className="bg-gray-900 rounded-xl p-5">
+            <div className="flex items-center gap-3 mb-2">
+              <span className="text-blue-400">
+                <FaBed />
+              </span>
+              <span className="text-gray-400 text-sm">
+                Bedrooms
+              </span>
+            </div>
 
-          <div className="lg:col-span-2">
-
-            <h1 className="text-3xl font-bold text-gray-900 md:text-4xl">
-              {title}
-            </h1>
-
-            <p className="mt-2 flex items-center gap-2 text-gray-500">
-              <FaMapMarkerAlt className="text-blue-600" />
-              {location}
+            <p className="text-xl font-semibold">
+              {bedrooms ?? "N/A"}
             </p>
+          </div>
 
-            {/* Price */}
-
-            <div className="mt-5">
-              <span className="text-3xl font-bold text-blue-600">
-                KSh{" "}
-                {Number(price).toLocaleString()}
+          <div className="bg-gray-900 rounded-xl p-5">
+            <div className="flex items-center gap-3 mb-2">
+              <span className="text-blue-400">
+                <FaBath />
               </span>
-
-              <span className="ml-2 text-gray-500">
-                / month
+              <span className="text-gray-400 text-sm">
+                Bathrooms
               </span>
             </div>
 
-            {/* ==========================================
-                FEATURES
-            ========================================== */}
+            <p className="text-xl font-semibold">
+              {bathrooms ?? "N/A"}
+            </p>
+          </div>
 
-            <div className="mt-6 grid grid-cols-2 gap-4 rounded-xl bg-white p-5 shadow-sm sm:grid-cols-4">
-
-              <div className="flex items-center gap-3">
-                <FaBed className="text-xl text-blue-600" />
-
-                <div>
-                  <p className="text-sm text-gray-500">
-                    Bedrooms
-                  </p>
-
-                  <p className="font-semibold text-gray-900">
-                    {bedrooms}
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <FaBath className="text-xl text-blue-600" />
-
-                <div>
-                  <p className="text-sm text-gray-500">
-                    Bathrooms
-                  </p>
-
-                  <p className="font-semibold text-gray-900">
-                    {bathrooms}
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <FaRulerCombined className="text-xl text-blue-600" />
-
-                <div>
-                  <p className="text-sm text-gray-500">
-                    Area
-                  </p>
-
-                  <p className="font-semibold text-gray-900">
-                    {Number(area).toLocaleString()} sq ft
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <FaCheckCircle className="text-xl text-blue-600" />
-
-                <div>
-                  <p className="text-sm text-gray-500">
-                    Condition
-                  </p>
-
-                  <p className="font-semibold text-gray-900">
-                    {furnished
-                      ? "Furnished"
-                      : "Unfurnished"}
-                  </p>
-                </div>
-              </div>
-
+          <div className="bg-gray-900 rounded-xl p-5">
+            <div className="flex items-center gap-3 mb-2">
+              <span className="text-blue-400">
+                <FaRulerCombined />
+              </span>
+              <span className="text-gray-400 text-sm">
+                Area
+              </span>
             </div>
 
-            {/* ==========================================
-                DESCRIPTION
-            ========================================== */}
+            <p className="text-xl font-semibold">
+              {area ? `${area} sq ft` : "N/A"}
+            </p>
+          </div>
 
-            <div className="mt-8 rounded-xl bg-white p-6 shadow-sm">
+          <div className="bg-gray-900 rounded-xl p-5">
+            <div className="flex items-center gap-3 mb-2">
+              <span className="text-blue-400">
+                <FaCheckCircle />
+              </span>
+              <span className="text-gray-400 text-sm">
+                Furnished
+              </span>
+            </div>
 
-              <h2 className="text-2xl font-bold text-gray-900">
+            <p className="text-xl font-semibold">
+              {furnished ? "Yes" : "No"}
+            </p>
+          </div>
+        </div>
+
+        {/* --------------------------------------------- */}
+        {/* PRICE + VIEWING FEE */}
+        {/* --------------------------------------------- */}
+        <div className="grid lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2">
+            {/* Description */}
+            <section className="mb-10">
+              <h2 className="text-2xl font-bold mb-4">
                 Property Description
               </h2>
 
-              <p className="mt-4 leading-7 text-gray-600">
-                {description}
+              <p className="text-gray-400 leading-7">
+                {description ||
+                  "No description available for this property."}
               </p>
+            </section>
 
-            </div>
+            {/* Amenities */}
+            {amenities.length > 0 && (
+              <section className="mb-10">
+                <h2 className="text-2xl font-bold mb-5">
+                  Amenities
+                </h2>
 
-            {/* ==========================================
-                PROTECTED INFORMATION
-            ========================================== */}
+                <div className="grid sm:grid-cols-2 gap-3">
+                  {amenities.map((amenity, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center gap-3 text-gray-300"
+                    >
+                      <FaCheckCircle className="text-blue-400" />
+                      <span>{amenity}</span>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
 
-            <div className="mt-8 rounded-xl bg-white p-6 shadow-sm">
+            {/* ----------------------------------------- */}
+            {/* PROTECTED INFORMATION */}
+            {/* ----------------------------------------- */}
+            <section className="bg-gray-900 rounded-2xl p-6 sm:p-8">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold">
+                  Contact & Viewing Information
+                </h2>
+
+                {!unlocked && (
+                  <FaLock className="text-gray-500 text-xl" />
+                )}
+              </div>
 
               {!unlocked ? (
-                <>
+                <div className="text-center py-6">
+                  <FaLock className="text-4xl text-gray-600 mx-auto mb-4" />
 
-                  <div className="flex items-center gap-3">
+                  <h3 className="text-xl font-semibold mb-2">
+                    Contact details are locked
+                  </h3>
 
-                    <div className="flex h-11 w-11 items-center justify-center rounded-full bg-blue-100">
-                      <FaLock className="text-blue-600" />
-                    </div>
-
-                    <div>
-                      <h2 className="text-2xl font-bold text-gray-900">
-                        Property Details
-                      </h2>
-
-                      <p className="text-sm text-gray-500">
-                        Additional information is protected
-                      </p>
-                    </div>
-
-                  </div>
-
-                  <p className="mt-4 text-gray-600">
-                    Unlock the exact location,
-                    landlord and caretaker contact
-                    information, additional photos,
-                    videos and map location by paying
-                    the property viewing fee.
+                  <p className="text-gray-400 mb-6">
+                    Pay the viewing fee to unlock the landlord,
+                    caretaker, location, map, photos and videos.
                   </p>
 
-                  {/* VIEWING FEE FROM MONGODB */}
-
                   <button
-                    type="button"
                     onClick={openPaymentModal}
-                    disabled={
-                      !propertyViewingFee ||
-                      propertyViewingFee <= 0
-                    }
-                    className="mt-5 w-full rounded-lg bg-blue-600 px-6 py-3 font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                    disabled={propertyViewingFee <= 0}
+                    className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 disabled:cursor-not-allowed text-white font-semibold px-6 py-3 rounded-lg transition"
                   >
                     {propertyViewingFee > 0
                       ? `Pay KSh ${propertyViewingFee.toLocaleString()} Viewing Fee`
                       : "Viewing Fee Not Available"}
                   </button>
-
-                </>
+                </div>
               ) : (
-
-                <>
-
-                  {/* UNLOCKED HEADER */}
-
-                  <div className="flex items-center gap-3">
-
-                    <div className="flex h-11 w-11 items-center justify-center rounded-full bg-green-100">
-                      <FaCheckCircle className="text-green-600" />
-                    </div>
-
+                <div className="space-y-6">
+                  {/* Landlord */}
+                  {landlordName && (
                     <div>
-                      <h2 className="text-2xl font-bold text-gray-900">
-                        Property Details Unlocked
-                      </h2>
+                      <div className="flex items-center gap-3 mb-3">
+                        <FaUser className="text-blue-400" />
 
-                      <p className="text-sm text-green-600">
-                        Payment successful
+                        <h3 className="font-semibold">
+                          Landlord
+                        </h3>
+                      </div>
+
+                      <p className="text-gray-300">
+                        {landlordName}
                       </p>
+
+                      {landlordPhone && (
+                        <a
+                          href={`tel:${landlordPhone}`}
+                          className="flex items-center gap-2 text-blue-400 hover:text-blue-300 mt-2"
+                        >
+                          <FaPhone />
+                          {landlordPhone}
+                        </a>
+                      )}
+
+                      {landlordEmail && (
+                        <a
+                          href={`mailto:${landlordEmail}`}
+                          className="block text-gray-400 hover:text-blue-400 mt-2"
+                        >
+                          {landlordEmail}
+                        </a>
+                      )}
                     </div>
+                  )}
 
-                  </div>
+                  {/* Caretaker */}
+                  {caretakerName && (
+                    <div>
+                      <div className="flex items-center gap-3 mb-3">
+                        <FaUser className="text-blue-400" />
 
-                  {/* EXACT LOCATION */}
+                        <h3 className="font-semibold">
+                          Caretaker
+                        </h3>
+                      </div>
 
-                  <div className="mt-6 border-t pt-5">
+                      <p className="text-gray-300">
+                        {caretakerName}
+                      </p>
 
-                    <h3 className="flex items-center gap-2 font-semibold text-gray-900">
-                      <FaMapMarkerAlt className="text-blue-600" />
-                      Exact Location
-                    </h3>
+                      {caretakerPhone && (
+                        <a
+                          href={`tel:${caretakerPhone}`}
+                          className="flex items-center gap-2 text-blue-400 hover:text-blue-300 mt-2"
+                        >
+                          <FaPhone />
+                          {caretakerPhone}
+                        </a>
+                      )}
+                    </div>
+                  )}
 
-                    <p className="mt-2 text-gray-600">
-                      {location ||
-                        "Location not provided"}
-                    </p>
+                  {/* Map */}
+                  {mapUrl && (
+                    <div>
+                      <h3 className="font-semibold mb-3">
+                        Exact Location
+                      </h3>
 
-                    {mapUrl && (
                       <a
                         href={mapUrl}
                         target="_blank"
-                        rel="noreferrer"
-                        className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-blue-600 hover:text-blue-700"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 px-5 py-3 rounded-lg transition"
                       >
                         <FaMapMarkerAlt />
                         Open Location Map
                       </a>
-                    )}
-
-                  </div>
-
-                  {/* LANDLORD */}
-
-                  <div className="mt-5 border-t pt-5">
-
-                    <h3 className="flex items-center gap-2 font-semibold text-gray-900">
-                      <FaUser className="text-blue-600" />
-                      Landlord Information
-                    </h3>
-
-                    <div className="mt-3 space-y-2 text-gray-600">
-
-                      <p>
-                        <span className="font-medium">
-                          Name:
-                        </span>{" "}
-                        {landlordName ||
-                          "Not provided"}
-                      </p>
-
-                      <p className="flex items-center gap-2">
-                        <span className="font-medium">
-                          Phone:
-                        </span>
-
-                        {landlordPhone ? (
-                          <a
-                            href={`tel:${landlordPhone}`}
-                            className="text-blue-600 hover:underline"
-                          >
-                            {landlordPhone}
-                          </a>
-                        ) : (
-                          "Not provided"
-                        )}
-                      </p>
-
-                      {landlordEmail && (
-                        <p>
-                          <span className="font-medium">
-                            Email:
-                          </span>{" "}
-                          {landlordEmail}
-                        </p>
-                      )}
-
                     </div>
-
-                  </div>
-
-                  {/* CARETAKER */}
-
-                  <div className="mt-5 border-t pt-5">
-
-                    <h3 className="flex items-center gap-2 font-semibold text-gray-900">
-                      <FaUser className="text-blue-600" />
-                      Caretaker Information
-                    </h3>
-
-                    <div className="mt-3 space-y-2 text-gray-600">
-
-                      <p>
-                        <span className="font-medium">
-                          Name:
-                        </span>{" "}
-                        {caretakerName ||
-                          "Not provided"}
-                      </p>
-
-                      <p className="flex items-center gap-2">
-                        <span className="font-medium">
-                          Phone:
-                        </span>
-
-                        {caretakerPhone ? (
-                          <a
-                            href={`tel:${caretakerPhone}`}
-                            className="text-blue-600 hover:underline"
-                          >
-                            {caretakerPhone}
-                          </a>
-                        ) : (
-                          "Not provided"
-                        )}
-                      </p>
-
-                    </div>
-
-                  </div>
-
-                </>
+                  )}
+                </div>
               )}
+            </section>
 
-            </div>
-
-          </div>
-
-          {/* ==========================================
-              SUMMARY CARD
-          ========================================== */}
-
-          <div className="h-fit rounded-xl bg-white p-6 shadow-md lg:sticky lg:top-24">
-
-            <h2 className="text-xl font-bold text-gray-900">
-              Property Summary
-            </h2>
-
-            <div className="mt-5 space-y-4">
-
-              <div className="flex justify-between border-b pb-3">
-                <span className="text-gray-500">
-                  Property Type
-                </span>
-
-                <span className="font-semibold text-gray-900">
-                  {propertyType}
-                </span>
-              </div>
-
-              <div className="flex justify-between border-b pb-3">
-                <span className="text-gray-500">
-                  Location
-                </span>
-
-                <span className="font-semibold text-gray-900">
-                  {location}
-                </span>
-              </div>
-
-              <div className="flex justify-between border-b pb-3">
-                <span className="text-gray-500">
-                  Bedrooms
-                </span>
-
-                <span className="font-semibold text-gray-900">
-                  {bedrooms}
-                </span>
-              </div>
-
-              <div className="flex justify-between border-b pb-3">
-                <span className="text-gray-500">
-                  Bathrooms
-                </span>
-
-                <span className="font-semibold text-gray-900">
-                  {bathrooms}
-                </span>
-              </div>
-
-              <div className="flex justify-between">
-                <span className="text-gray-500">
-                  Area
-                </span>
-
-                <span className="font-semibold text-gray-900">
-                  {Number(area).toLocaleString()} sq ft
-                </span>
-              </div>
-
-            </div>
-
-            {!unlocked && (
-              <button
-                type="button"
-                onClick={openPaymentModal}
-                disabled={
-                  !propertyViewingFee ||
-                  propertyViewingFee <= 0
-                }
-                className="mt-6 w-full rounded-lg bg-blue-600 px-5 py-3 font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {propertyViewingFee > 0
-                  ? `Pay KSh ${propertyViewingFee.toLocaleString()} Viewing Fee`
-                  : "Viewing Fee Not Available"}
-              </button>
-            )}
-
-            {unlocked && (
-              <div className="mt-6 flex items-center justify-center gap-2 rounded-lg bg-green-50 px-4 py-3 text-sm font-semibold text-green-700">
-                <FaCheckCircle />
-                Details Unlocked
-              </div>
-            )}
-
-          </div>
-
-        </div>
-
-        {/* ==========================================
-            MORE PHOTOS
-        ========================================== */}
-
-        <div className="mt-10 rounded-xl bg-white p-6 shadow-sm">
-
-          <div className="flex items-center justify-between">
-
-            <div>
-
-              <h2 className="text-2xl font-bold text-gray-900">
-                More Property Photos
+            {/* ----------------------------------------- */}
+            {/* MORE PHOTOS */}
+            {/* ----------------------------------------- */}
+            <section className="mt-10">
+              <h2 className="text-2xl font-bold mb-5">
+                More Photos
               </h2>
 
-              {!unlocked && (
-                <p className="mt-1 text-sm text-gray-500">
-                  Pay the viewing fee to unlock
-                  all property photos.
+              {!unlocked ? (
+                <div className="bg-gray-900 rounded-xl p-8 text-center">
+                  <FaLock className="text-3xl text-gray-600 mx-auto mb-3" />
+
+                  <p className="text-gray-400">
+                    Additional property photos are available after
+                    payment.
+                  </p>
+                </div>
+              ) : images.length > 1 ? (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                  {images.slice(1).map((image, index) => (
+                    <img
+                      key={index}
+                      src={image}
+                      alt={`${title} ${index + 2}`}
+                      className="w-full h-48 object-cover rounded-xl"
+                    />
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-400">
+                  No additional photos available.
                 </p>
               )}
+            </section>
 
-            </div>
+            {/* ----------------------------------------- */}
+            {/* VIDEOS */}
+            {/* ----------------------------------------- */}
+            <section className="mt-10">
+              <div className="flex items-center gap-3 mb-5">
+                <FaVideo className="text-blue-400" />
 
-            {!unlocked && (
-              <FaLock className="text-xl text-gray-400" />
-            )}
-
-          </div>
-
-          <div className="mt-5">
-
-            {unlocked ? (
-              <>
-
-                {additionalImages.length > 0 ? (
-
-                  <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
-
-                    {additionalImages.map(
-                      (image, index) => (
-
-                        <div
-                          key={index}
-                          className="overflow-hidden rounded-lg"
-                        >
-
-                          <img
-                            src={image}
-                            alt={`${title} ${
-                              index + 2
-                            }`}
-                            className="h-48 w-full object-cover transition duration-300 hover:scale-105"
-                          />
-
-                        </div>
-
-                      )
-                    )}
-
-                  </div>
-
-                ) : (
-
-                  <div className="rounded-lg bg-gray-50 p-8 text-center">
-
-                    <p className="text-gray-500">
-                      No additional photos available.
-                    </p>
-
-                  </div>
-
-                )}
-
-              </>
-
-            ) : (
-
-              <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 p-10 text-center">
-
-                <FaLock className="mx-auto text-4xl text-gray-400" />
-
-                <h3 className="mt-4 font-semibold text-gray-800">
-                  Photos Locked
-                </h3>
-
-                <p className="mt-2 text-sm text-gray-500">
-                  Complete the viewing fee payment
-                  to access all property photos.
-                </p>
-
-                <button
-                  type="button"
-                  onClick={openPaymentModal}
-                  disabled={
-                    !propertyViewingFee ||
-                    propertyViewingFee <= 0
-                  }
-                  className="mt-5 rounded-lg bg-blue-600 px-6 py-3 font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {propertyViewingFee > 0
-                    ? `Pay KSh ${propertyViewingFee.toLocaleString()} Viewing Fee`
-                    : "Viewing Fee Not Available"}
-                </button>
-
+                <h2 className="text-2xl font-bold">
+                  Property Videos
+                </h2>
               </div>
 
-            )}
+              {!unlocked ? (
+                <div className="bg-gray-900 rounded-xl p-8 text-center">
+                  <FaLock className="text-3xl text-gray-600 mx-auto mb-3" />
 
+                  <p className="text-gray-400">
+                    Property videos are available after payment.
+                  </p>
+                </div>
+              ) : videos.length > 0 ? (
+                <div className="space-y-5">
+                  {videos.map((video, index) => (
+                    <video
+                      key={index}
+                      src={video}
+                      controls
+                      className="w-full rounded-xl bg-black"
+                    />
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-400">
+                  No videos available for this property.
+                </p>
+              )}
+            </section>
           </div>
 
-        </div>
-
-        {/* ==========================================
-            VIDEOS
-        ========================================== */}
-
-        <div className="mt-8 rounded-xl bg-white p-6 shadow-sm">
-
-          <h2 className="flex items-center gap-2 text-2xl font-bold text-gray-900">
-            <FaVideo className="text-blue-600" />
-            Property Videos
-          </h2>
-
-          {!unlocked ? (
-
-            <div className="mt-5 rounded-lg bg-gray-100 p-8 text-center">
-
-              <FaLock className="mx-auto text-3xl text-gray-400" />
-
-              <p className="mt-3 font-semibold text-gray-700">
-                Property videos are locked
+          {/* ------------------------------------------- */}
+          {/* SIDEBAR */}
+          {/* ------------------------------------------- */}
+          <aside>
+            <div className="bg-gray-900 rounded-2xl p-6 sticky top-24">
+              <p className="text-gray-400 text-sm mb-1">
+                Monthly Rent
               </p>
 
-              <p className="mt-1 text-sm text-gray-500">
-                Pay the viewing fee to access them.
+              <p className="text-3xl font-bold text-blue-400 mb-6">
+                KSh {Number(price || 0).toLocaleString()}
               </p>
 
-              <button
-                type="button"
-                onClick={openPaymentModal}
-                disabled={
-                  !propertyViewingFee ||
-                  propertyViewingFee <= 0
-                }
-                className="mt-5 rounded-lg bg-blue-600 px-6 py-3 font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {propertyViewingFee > 0
-                  ? `Pay KSh ${propertyViewingFee.toLocaleString()} Viewing Fee`
-                  : "Viewing Fee Not Available"}
-              </button>
+              <div className="border-t border-gray-800 pt-5 mb-6">
+                <p className="text-gray-400 text-sm mb-1">
+                  Viewing Fee
+                </p>
 
-            </div>
+                <p className="text-xl font-semibold">
+                  {propertyViewingFee > 0
+                    ? `KSh ${propertyViewingFee.toLocaleString()}`
+                    : "Not Available"}
+                </p>
+              </div>
 
-          ) : (
-
-            <>
-
-              {videos?.length > 0 ? (
-
-                <div className="mt-5 grid gap-5 md:grid-cols-2">
-
-                  {videos.map(
-                    (video, index) => (
-
-                      <video
-                        key={index}
-                        src={video}
-                        controls
-                        className="w-full rounded-lg"
-                      />
-
-                    )
-                  )}
-
-                </div>
-
-              ) : (
-
-                <div className="mt-5 rounded-lg bg-gray-50 p-8 text-center">
-
-                  <p className="text-gray-500">
-                    No property videos available.
-                  </p>
-
-                </div>
-
-              )}
-
-            </>
-
-          )}
-
-        </div>
-
-      </section>
-
-      {/* ==========================================
-          PAYMENT MODAL
-      ========================================== */}
-
-      {showPaymentModal && (
-
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
-
-          <div className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
-
-            {/* Close */}
-
-            {!paymentLoading &&
-              paymentStatus !== "pending" &&
-              !unlockLoading && (
-
+              {!unlocked && (
                 <button
-                  type="button"
-                  onClick={closePaymentModal}
-                  className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 text-gray-500 transition hover:bg-gray-200"
+                  onClick={openPaymentModal}
+                  disabled={propertyViewingFee <= 0}
+                  className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 disabled:cursor-not-allowed text-white font-semibold py-3 px-5 rounded-lg transition"
                 >
-                  <FaTimes />
+                  {propertyViewingFee > 0
+                    ? `Pay KSh ${propertyViewingFee.toLocaleString()} to View`
+                    : "Viewing Fee Not Available"}
                 </button>
-
               )}
 
-            {/* ==========================================
-                PAYMENT SUCCESS
-            ========================================== */}
-
-            {paymentStatus ===
-              "completed" && unlocked ? (
-
-              <div className="py-8 text-center">
-
-                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
-
-                  <FaCheckCircle className="text-3xl text-green-600" />
-
+              {unlocked && (
+                <div className="flex items-center justify-center gap-2 bg-green-600/10 text-green-400 border border-green-600/30 rounded-lg py-3">
+                  <FaCheckCircle />
+                  Property Details Unlocked
                 </div>
+              )}
+            </div>
+          </aside>
+        </div>
+      </main>
 
-                <h2 className="mt-5 text-2xl font-bold text-gray-900">
+      {/* ================================================= */}
+      {/* PAYMENT MODAL */}
+      {/* ================================================= */}
+      {showPaymentModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
+          <div className="relative w-full max-w-md bg-gray-900 rounded-2xl shadow-2xl p-6 sm:p-8">
+            {/* Close */}
+            <button
+              onClick={closePaymentModal}
+              disabled={paymentLoading || unlockLoading}
+              className="absolute top-4 right-4 text-gray-400 hover:text-white disabled:opacity-50"
+            >
+              <FaTimes />
+            </button>
+
+            {/* ----------------------------------------- */}
+            {/* SUCCESS */}
+            {/* ----------------------------------------- */}
+            {paymentStatus === "completed" && unlocked ? (
+              <div className="text-center py-6">
+                <FaCheckCircle className="text-5xl text-green-500 mx-auto mb-5" />
+
+                <h2 className="text-2xl font-bold mb-3">
                   Payment Successful
                 </h2>
 
-                <p className="mt-2 text-gray-600">
-                  Your property details have
-                  been unlocked.
+                <p className="text-gray-400">
+                  Your property viewing details have been
+                  unlocked successfully.
                 </p>
-
               </div>
-
             ) : unlockLoading ? (
+              /* ----------------------------------------- */
+              /* UNLOCKING */
+              /* ----------------------------------------- */
+              <div className="text-center py-8">
+                <div className="w-12 h-12 border-4 border-gray-700 border-t-blue-500 rounded-full animate-spin mx-auto mb-5"></div>
 
-              /* ==========================================
-                  UNLOCKING
-              ========================================== */
+                <h2 className="text-xl font-bold mb-2">
+                  Unlocking Property Details...
+                </h2>
 
-              <div className="py-8 text-center">
-
-                <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-gray-200 border-t-blue-600" />
-
-                <h3 className="mt-5 text-lg font-bold text-gray-900">
-                  Unlocking property details...
-                </h3>
-
-                <p className="mt-2 text-sm text-gray-500">
-                  Your payment was received.
+                <p className="text-gray-400">
+                  Your payment has been received. Please wait while
+                  we unlock the property information.
                 </p>
-
               </div>
+            ) : paymentStatus === "pending" ? (
+              /* ----------------------------------------- */
+              /* PAYMENT PENDING */
+              /* ----------------------------------------- */
+              <div className="text-center py-6">
+                <FaMobileAlt className="text-5xl text-blue-400 mx-auto mb-5" />
 
-            ) : paymentStatus ===
-              "pending" ? (
+                <h2 className="text-2xl font-bold mb-3">
+                  Waiting for Payment
+                </h2>
 
-              /* ==========================================
-                  WAITING FOR PAYMENT
-              ========================================== */
-
-              <div className="py-8 text-center">
-
-                <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-gray-200 border-t-blue-600" />
-
-                <h3 className="mt-5 text-lg font-bold text-gray-900">
-                  Waiting for payment
-                </h3>
-
-                <p className="mt-2 text-sm leading-6 text-gray-500">
-                  Check your phone and complete
-                  the M-Pesa payment prompt.
+                <p className="text-gray-400 mb-5">
+                  Check your phone and complete the M-Pesa payment
+                  request.
                 </p>
 
-                <p className="mt-4 text-xs text-gray-400">
-                  This page will automatically
-                  detect your payment.
-                </p>
-
-              </div>
-
-            ) : (
-
-              /* ==========================================
-                  PAYMENT FORM
-              ========================================== */
-
-              <>
-
-                <div className="pr-8">
-
-                  <div className="flex items-center gap-3">
-
-                    <div className="flex h-11 w-11 items-center justify-center rounded-full bg-blue-100">
-                      <FaMobileAlt className="text-blue-600" />
-                    </div>
-
-                    <div>
-
-                      <h2 className="text-xl font-bold text-gray-900">
-                        Unlock Property Details
-                      </h2>
-
-                      <p className="text-sm text-gray-500">
-                        Secure M-Pesa payment
-                      </p>
-
-                    </div>
-
-                  </div>
-
-                </div>
-
-                {/* ==========================================
-                    AMOUNT FROM MONGODB
-                ========================================== */}
-
-                <div className="mt-6 rounded-xl bg-blue-50 p-4 text-center">
-
-                  <p className="text-sm text-gray-600">
-                    Property Viewing Fee
+                <div className="bg-gray-800 rounded-lg p-4">
+                  <p className="text-gray-400 text-sm">
+                    Viewing Fee
                   </p>
 
-                  <p className="mt-1 text-3xl font-bold text-blue-600">
+                  <p className="text-xl font-bold text-blue-400">
                     KSh{" "}
                     {propertyViewingFee.toLocaleString()}
                   </p>
-
                 </div>
 
-                <form
-                  onSubmit={initiatePayment}
-                  className="mt-6"
-                >
+                <div className="mt-5 flex justify-center">
+                  <div className="w-8 h-8 border-4 border-gray-700 border-t-blue-500 rounded-full animate-spin"></div>
+                </div>
+              </div>
+            ) : (
+              /* ----------------------------------------- */
+              /* PAYMENT FORM */
+              /* ----------------------------------------- */
+              <>
+                <div className="text-center mb-7">
+                  <FaMobileAlt className="text-4xl text-blue-400 mx-auto mb-4" />
 
-                  <label
-                    htmlFor="phoneNumber"
-                    className="block text-sm font-semibold text-gray-700"
-                  >
+                  <h2 className="text-2xl font-bold mb-2">
+                    Pay Viewing Fee
+                  </h2>
+
+                  <p className="text-gray-400">
+                    Enter your M-Pesa number to receive the payment
+                    prompt.
+                  </p>
+                </div>
+
+                {/* Viewing Fee */}
+                <div className="bg-gray-800 rounded-xl p-4 mb-6 text-center">
+                  <p className="text-gray-400 text-sm">
+                    Property Viewing Fee
+                  </p>
+
+                  <p className="text-2xl font-bold text-blue-400 mt-1">
+                    KSh{" "}
+                    {propertyViewingFee.toLocaleString()}
+                  </p>
+                </div>
+
+                <form onSubmit={initiatePayment}>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
                     M-Pesa Phone Number
                   </label>
 
                   <input
-                    id="phoneNumber"
                     type="tel"
                     value={phoneNumber}
-                    onChange={(event) =>
-                      setPhoneNumber(
-                        event.target.value
-                      )
+                    onChange={(e) =>
+                      setPhoneNumber(e.target.value)
                     }
-                    placeholder="07XXXXXXXX"
+                    placeholder="e.g. 0712345678"
+                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 mb-4"
                     disabled={paymentLoading}
-                    className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-gray-100"
                   />
 
                   {paymentError && (
-                    <div className="mt-3 rounded-lg bg-red-50 p-3 text-sm text-red-600">
+                    <div className="bg-red-500/10 border border-red-500/30 text-red-400 rounded-lg p-3 mb-4 text-sm">
                       {paymentError}
                     </div>
                   )}
@@ -1357,51 +1013,20 @@ const PropertyDetails = () => {
                     type="submit"
                     disabled={
                       paymentLoading ||
-                      !propertyViewingFee ||
                       propertyViewingFee <= 0
                     }
-                    className="mt-5 flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-6 py-3 font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-lg transition"
                   >
-
-                    {paymentLoading ? (
-
-                      <>
-                        <span className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
-
-                        Sending STK Push...
-                      </>
-
-                    ) : (
-
-                      <>
-                        <FaMobileAlt />
-
-                        Pay KSh{" "}
-                        {propertyViewingFee.toLocaleString()}{" "}
-                        with M-Pesa
-                      </>
-
-                    )}
-
+                    {paymentLoading
+                      ? "Sending M-Pesa Request..."
+                      : `Pay KSh ${propertyViewingFee.toLocaleString()}`}
                   </button>
-
-                  <p className="mt-4 text-center text-xs text-gray-400">
-                    You will receive an M-Pesa
-                    prompt on your phone.
-                  </p>
-
                 </form>
-
               </>
-
             )}
-
           </div>
-
         </div>
-
       )}
-
     </div>
   );
 };
