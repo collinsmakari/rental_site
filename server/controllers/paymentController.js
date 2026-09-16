@@ -1,4 +1,3 @@
-
 import crypto from "crypto";
 import Payment from "../models/Payment.js";
 import Property from "../models/Property.js";
@@ -77,24 +76,50 @@ export const initiatePayment = async (req, res) => {
     // INITIATE M-PESA STK PUSH
     // ==========================================
 
-    const stkResponse = await initiateSTKPush({
-      phoneNumber,
-      amount,
-      accountReference: `PROPERTY-${property._id}`,
-      transactionDescription: "Property Viewing Fee",
-    });
+    try {
+      const stkResponse = await initiateSTKPush({
+        phoneNumber,
+        amount,
+        accountReference: `PROPERTY-${property._id}`,
+        transactionDescription: "Property Viewing Fee",
+      });
 
-    // ==========================================
-    // SAVE M-PESA TRANSACTION IDENTIFIERS
-    // ==========================================
+      // ==========================================
+      // SAVE M-PESA TRANSACTION IDENTIFIERS
+      // ==========================================
 
-    payment.merchantRequestId =
-      stkResponse.MerchantRequestID;
+      payment.merchantRequestId =
+        stkResponse.MerchantRequestID;
 
-    payment.checkoutRequestId =
-      stkResponse.CheckoutRequestID;
+      payment.checkoutRequestId =
+        stkResponse.CheckoutRequestID;
 
-    await payment.save();
+      await payment.save();
+
+    } catch (stkError) {
+      // ==========================================
+      // STK PUSH FAILED
+      // ==========================================
+
+      payment.status = "failed";
+      payment.resultCode = -1;
+      payment.resultDescription =
+        stkError.message || "Failed to initiate M-Pesa STK Push";
+
+      await payment.save();
+
+      console.error(
+        "========== STK PUSH ERROR =========="
+      );
+      console.error(stkError);
+
+      return res.status(500).json({
+        success: false,
+        message: "Failed to initiate M-Pesa payment",
+        error: stkError.message,
+        paymentId: payment._id,
+      });
+    }
 
     // ==========================================
     // LOG PAYMENT
