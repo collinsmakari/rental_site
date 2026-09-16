@@ -19,7 +19,7 @@ function App() {
           <Route path="/blog/understanding-rental-agreements" element={<Blog />} />
           <Route path="/blog" element={<Blog />} />
 <Route
-  path="/rentals/:id"
+  path="/properties/:id"
   element={<PropertyDetails />}
 />
           <Route path="/contact" element={<Contact />} />

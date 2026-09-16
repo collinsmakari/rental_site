@@ -4,7 +4,8 @@ import { useSearchParams } from "react-router-dom";
 import RentalHero from "../components/rentals/RentalHero";
 import CategoryFilter from "../components/rentals/CategoryFilter";
 import PropertyGrid from "../components/rentals/PropertyGrid";
-import properties from "../data/properties";
+
+const API_URL = "http://localhost:5000/api/properties";
 
 const Rentals = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -16,6 +17,14 @@ const Rentals = () => {
   const urlType = searchParams.get("type") || "";
   const urlLocation = searchParams.get("location") || "";
   const urlMaxPrice = searchParams.get("maxPrice") || "";
+
+  // ===============================
+  // PROPERTY STATE
+  // ===============================
+
+  const [properties, setProperties] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   // ===============================
   // SEARCH STATE
@@ -32,6 +41,53 @@ const Rentals = () => {
   const [selectedCategory, setSelectedCategory] = useState(
     urlType || "All"
   );
+
+  // ===============================
+  // GET PROPERTIES FROM BACKEND
+  // ===============================
+
+  useEffect(() => {
+    const fetchProperties = async () => {
+      try {
+        setLoading(true);
+        setError("");
+
+        const response = await fetch(API_URL);
+
+        if (!response.ok) {
+          throw new Error(
+            `Server returned ${response.status}`
+          );
+        }
+
+        const data = await response.json();
+
+        console.log("Properties received:", data);
+
+        // Backend returns:
+        // {
+        //   success: true,
+        //   count: ...,
+        //   properties: [...]
+        // }
+
+        setProperties(data.properties || []);
+      } catch (error) {
+        console.error(
+          "Failed to fetch properties:",
+          error
+        );
+
+        setError(
+          "Unable to load properties. Please try again."
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProperties();
+  }, []);
 
   // ===============================
   // SCROLL TO RESULTS
@@ -59,47 +115,53 @@ const Rentals = () => {
   // ===============================
 
   useEffect(() => {
-    if (urlType || urlLocation || urlMaxPrice) {
-      setLocation(urlLocation);
-      setMaxPrice(urlMaxPrice);
-      setPropertyType(urlType);
-      setSelectedCategory(urlType || "All");
-
-      const timer = setTimeout(() => {
-        document
-          .getElementById("property-results")
-          ?.scrollIntoView({
-            behavior: "smooth",
-            block: "start",
-          });
-      }, 300);
-
-      return () => clearTimeout(timer);
-    }
+    setLocation(urlLocation);
+    setMaxPrice(urlMaxPrice);
+    setPropertyType(urlType);
+    setSelectedCategory(urlType || "All");
   }, [urlType, urlLocation, urlMaxPrice]);
 
   // ===============================
   // FILTER PROPERTIES
   // ===============================
 
-  const filteredProperties = properties.filter((property) => {
+  const filteredProperties = properties.filter(
+  (property) => {
+    // ===============================
+    // CATEGORY
+    // ===============================
+
     const matchesCategory =
       selectedCategory === "All" ||
-      property.category === selectedCategory;
+      property.propertyType === selectedCategory;
+
+    // ===============================
+    // LOCATION
+    // ===============================
 
     const matchesLocation =
       location.trim() === "" ||
       property.location
-        .toLowerCase()
-        .includes(location.trim().toLowerCase());
+        ?.toLowerCase()
+        .includes(
+          location.trim().toLowerCase()
+        );
+
+    // ===============================
+    // PRICE
+    // ===============================
 
     const matchesPrice =
       maxPrice === "" ||
-      property.price <= Number(maxPrice);
+      Number(property.price) <= Number(maxPrice);
+
+    // ===============================
+    // PROPERTY TYPE
+    // ===============================
 
     const matchesPropertyType =
       propertyType === "" ||
-      property.category === propertyType;
+      property.propertyType === propertyType;
 
     return (
       matchesCategory &&
@@ -107,8 +169,8 @@ const Rentals = () => {
       matchesPrice &&
       matchesPropertyType
     );
-  });
-
+  }
+);
   // ===============================
   // SEARCH
   // ===============================
@@ -130,7 +192,9 @@ const Rentals = () => {
 
     setSearchParams(params);
 
-    setSelectedCategory(propertyType || "All");
+    setSelectedCategory(
+      propertyType || "All"
+    );
 
     setTimeout(() => {
       document
@@ -201,6 +265,10 @@ const Rentals = () => {
     }, 100);
   };
 
+  // ===============================
+  // RENDER
+  // ===============================
+
   return (
     <div className="min-h-screen bg-gray-50">
 
@@ -254,23 +322,51 @@ const Rentals = () => {
           className="scroll-mt-32 pt-5"
         >
 
-          {/* Result Count */}
-          <div className="mb-4">
-            <p className="text-sm text-slate-500">
-              Showing{" "}
-              <span className="font-semibold text-slate-800">
-                {filteredProperties.length}
-              </span>{" "}
-              {filteredProperties.length === 1
-                ? "property"
-                : "properties"}
-            </p>
-          </div>
+          {/* LOADING */}
 
-          {/* Property Grid */}
-          <PropertyGrid
-            properties={filteredProperties}
-          />
+          {loading && (
+            <div className="py-16 text-center">
+              <p className="text-slate-500">
+                Loading properties...
+              </p>
+            </div>
+          )}
+
+          {/* ERROR */}
+
+          {!loading && error && (
+            <div className="rounded-lg bg-red-50 p-6 text-center">
+              <p className="text-red-600">
+                {error}
+              </p>
+            </div>
+          )}
+
+          {/* RESULTS */}
+
+          {!loading && !error && (
+            <>
+              {/* Result Count */}
+
+              <div className="mb-4">
+                <p className="text-sm text-slate-500">
+                  Showing{" "}
+                  <span className="font-semibold text-slate-800">
+                    {filteredProperties.length}
+                  </span>{" "}
+                  {filteredProperties.length === 1
+                    ? "property"
+                    : "properties"}
+                </p>
+              </div>
+
+              {/* Property Grid */}
+
+              <PropertyGrid
+                properties={filteredProperties}
+              />
+            </>
+          )}
 
         </section>
       </main>

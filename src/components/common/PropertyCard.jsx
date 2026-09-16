@@ -8,119 +8,127 @@ import {
   ArrowRight,
   CheckCircle,
 } from "lucide-react";
+import { FaBed, FaBath, FaRulerCombined } from "react-icons/fa";
 
 const PropertyCard = ({ property }) => {
-  if (!property) return null;
+  const {
+    _id,
+    title,
+    propertyType,
+    location,
+    price,
+    bedrooms,
+    bathrooms,
+    area,
+    images,
+    furnished,
+    featured,
+  } = property;
+
+  // Use the first MongoDB image
+  const mainImage =
+    images?.length > 0
+      ? images[0]
+      : "/properties/property-placeholder.jpg";
 
   return (
-    <article className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
-      {/* Image */}
+    <div className="group flex h-full flex-col overflow-hidden rounded-xl bg-white shadow-md transition-shadow duration-300 hover:shadow-xl">
+      
+      {/* Property Image */}
       <div className="relative h-64 overflow-hidden">
         <img
-          src={property.image}
-          alt={property.title}
+          src={mainImage}
+          alt={title}
           className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-          onError={(e) => {
-            e.currentTarget.src = "/images/property-placeholder.jpg";
-          }}
         />
 
-        {/* Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-
-        {/* Category */}
-        <div className="absolute left-4 top-4">
-          <span className="rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-slate-800 shadow">
-            {property.category}
-          </span>
+        {/* Property Type */}
+        <div className="absolute left-4 top-4 rounded-full bg-blue-600 px-3 py-1 text-sm font-semibold text-white">
+          {propertyType}
         </div>
 
         {/* Featured */}
-        {property.featured && (
-          <div className="absolute right-4 top-4">
-            <span className="flex items-center gap-1 rounded-full bg-orange-500 px-3 py-1.5 text-xs font-semibold text-white shadow">
-              <CheckCircle size={14} />
-              Featured
-            </span>
+        {featured && (
+          <div className="absolute right-4 top-4 rounded-full bg-white px-3 py-1 text-sm font-semibold text-blue-600 shadow">
+            Featured
           </div>
         )}
 
-        {/* Favorite */}
-        <button
-          type="button"
-          aria-label={`Save ${property.title}`}
-          className="absolute bottom-4 right-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-slate-700 shadow transition hover:bg-white hover:text-red-500"
-        >
-          <Heart size={19} />
-        </button>
-
-        {/* Price */}
-        <div className="absolute bottom-4 left-4 text-white">
-          <p className="text-xl font-bold">
-            KSh {property.price.toLocaleString()}
-          </p>
-          <p className="text-sm text-white/80">per {property.period}</p>
-        </div>
+        {/* Availability */}
+        {!property.available && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+            <span className="rounded-md bg-red-600 px-4 py-2 font-semibold text-white">
+              Not Available
+            </span>
+          </div>
+        )}
       </div>
 
-      {/* Content */}
-      <div className="p-5">
+      {/* Property Content */}
+      <div className="flex flex-1 flex-col p-5">
+
         {/* Title */}
-        <h3 className="line-clamp-1 text-xl font-bold text-slate-900 transition-colors group-hover:text-orange-500">
-          {property.title}
+        <h3 className="line-clamp-2 text-xl font-semibold text-gray-900">
+          {title}
         </h3>
 
         {/* Location */}
-        <div className="mt-2 flex items-center gap-2 text-sm text-slate-500">
-          <MapPin size={16} className="shrink-0 text-orange-500" />
-          <span>{property.location}</span>
+        <p className="mt-2 text-sm text-gray-500">
+          {location}
+        </p>
+
+        {/* Price */}
+        <div className="mt-4">
+          <span className="text-2xl font-bold text-blue-600">
+            KSh {Number(price).toLocaleString()}
+          </span>
+
+          <span className="ml-1 text-sm text-gray-500">
+            / month
+          </span>
         </div>
 
-        {/* Property Details */}
-        <div className="mt-5 grid grid-cols-3 gap-3 border-y border-slate-100 py-4">
-          <div className="flex items-center gap-2 text-sm text-slate-600">
-            <BedDouble size={18} className="text-orange-500" />
-            <span>{property.bedrooms} Beds</span>
+        {/* Property Features */}
+        <div className="mt-4 flex flex-wrap gap-4 border-y border-gray-100 py-4 text-sm text-gray-600">
+
+          <div className="flex items-center gap-2">
+            <FaBed className="text-blue-600" />
+            <span>
+              {bedrooms} {bedrooms === 1 ? "Bed" : "Beds"}
+            </span>
           </div>
 
-          <div className="flex items-center gap-2 text-sm text-slate-600">
-            <Bath size={18} className="text-orange-500" />
-            <span>{property.bathrooms} Baths</span>
+          <div className="flex items-center gap-2">
+            <FaBath className="text-blue-600" />
+            <span>
+              {bathrooms} {bathrooms === 1 ? "Bath" : "Baths"}
+            </span>
           </div>
 
-          <div className="flex items-center gap-2 text-sm text-slate-600">
-            <Ruler size={18} className="text-orange-500" />
-            <span>{property.area} ft²</span>
+          <div className="flex items-center gap-2">
+            <FaRulerCombined className="text-blue-600" />
+            <span>{Number(area).toLocaleString()} sq ft</span>
           </div>
+
         </div>
 
         {/* Furnished */}
-        {property.furnished && (
-          <div className="mt-4">
-            <span className="inline-flex rounded-full bg-green-50 px-3 py-1 text-xs font-medium text-green-700">
-              Furnished
-            </span>
-          </div>
-        )}
-
-        {/* Description */}
-        <p className="mt-4 line-clamp-2 text-sm leading-6 text-slate-500">
-          {property.description}
-        </p>
+        <div className="mt-3 text-sm text-gray-500">
+          {furnished ? "Furnished" : "Unfurnished"}
+        </div>
 
         {/* Button */}
-        <Link
-          to={`/rentals/${property.id}`}
-          className="mt-5 flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-orange-500"
-        >
-          View Property
-          <ArrowRight
-            size={17}
-            className="transition-transform group-hover:translate-x-1"
-          />
-        </Link>
+        <div className="mt-auto pt-5">
+          <Link
+            to={`/properties/${_id}`}
+            className="block w-full rounded-lg bg-blue-600 px-5 py-3 text-center font-semibold text-white transition-colors duration-300 hover:bg-blue-700"
+          >
+            View Property
+          </Link>
+        </div>
+
       </div>
-    </article>
+    </div>
   );
 };
 

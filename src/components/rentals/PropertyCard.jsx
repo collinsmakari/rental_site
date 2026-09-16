@@ -4,7 +4,7 @@ import {
   FaMapMarkerAlt,
   FaRulerCombined,
 } from "react-icons/fa";
-
+import { Link } from "react-router-dom";
 import Button from "../common/Button";
 
 const PropertyCard = ({ property }) => {
@@ -13,17 +13,22 @@ const PropertyCard = ({ property }) => {
 
       {/* ================= IMAGE ================= */}
       <div className="relative h-56 shrink-0 overflow-hidden">
-        <img
-          src={property.image}
-          alt={property.title}
-          className="h-full w-full object-cover transition-transform duration-500 hover:scale-105"
-        />
+  <Link
+    to={`/rentals/${property.id}`}
+    className="block h-full w-full"
+    aria-label={`View ${property.title}`}
+  >
+    <img
+      src={property.image}
+      alt={property.title}
+      className="h-full w-full cursor-pointer object-cover transition-transform duration-500 hover:scale-105"
+    />
+  </Link>
 
-        {/* Category */}
-        <span className="absolute left-4 top-4 rounded-full bg-blue-600 px-4 py-1.5 text-sm font-semibold text-white">
-          {property.category}
-        </span>
-      </div>
+  <span className="pointer-events-none absolute left-4 top-4 rounded-full bg-blue-600 px-4 py-1.5 text-sm font-semibold text-white">
+    {property.category}
+  </span>
+</div>
 
       {/* ================= CONTENT ================= */}
       <div className="flex flex-1 flex-col px-6 py-6">

@@ -1,503 +1,1408 @@
-import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
 
+import { useEffect, useState } from "react";import { Link, useParams } from "react-router-dom";
 import {
-  FaMapMarkerAlt,
   FaBed,
   FaBath,
   FaRulerCombined,
   FaArrowLeft,
-  FaLock,
   FaCheckCircle,
-  FaPlayCircle,
+  FaLock,
+  FaTimes,
+  FaMobileAlt,
+  FaMapMarkerAlt,
+  FaPhone,
+  FaUser,
+  FaVideo,
 } from "react-icons/fa";
 
-import properties from "../data/properties";
+const API_URL =
+  import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 const PropertyDetails = () => {
-   const { id } = useParams();
-  const [isPaid, setIsPaid] = useState(false);
+  const { id } = useParams();
 
-  const property = properties.find(
-    (item) => item.id === Number(id)
-  );
+  // ==========================================
+  // PROPERTY STATE
+  // ==========================================
+
+  const [property, setProperty] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  // ==========================================
+  // PAYMENT STATE
+  // ==========================================
+
+  const [showPaymentModal, setShowPaymentModal] =
+    useState(false);
+
+  const [phoneNumber, setPhoneNumber] =
+    useState("");
+
+  const [paymentId, setPaymentId] =
+    useState(null);
+
+  const [paymentStatus, setPaymentStatus] =
+    useState(null);
+
+  const [paymentLoading, setPaymentLoading] =
+    useState(false);
+
+  const [paymentError, setPaymentError] =
+    useState("");
+
+  const [unlocked, setUnlocked] =
+    useState(false);
+
+  const [unlockLoading, setUnlockLoading] =
+    useState(false);
+
+  // ==========================================
+  // FETCH PUBLIC PROPERTY
+  // ==========================================
 
   useEffect(() => {
-    if (property) {
-      const timer = setTimeout(() => {
-        document.getElementById("unlock-property")?.scrollIntoView({
-          behavior: "smooth",
-          block: "start",
-        });
-      }, 300);
+    const fetchProperty = async () => {
+      try {
+        setLoading(true);
+        setError("");
 
-      return () => clearTimeout(timer);
+        const response = await fetch(
+          `${API_URL}/api/properties/${id}`
+        );
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+          throw new Error(
+            data.message ||
+              "Failed to fetch property"
+          );
+        }
+
+        console.log("Property received from MongoDB:", data.property);
+        console.log(
+          "Viewing fee received:",
+          data.property?.viewingFee
+        );
+
+        setProperty(data.property);
+      } catch (error) {
+        console.error(
+          "Fetch property error:",
+          error
+        );
+
+        setError(
+          error.message ||
+            "Failed to load property"
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (id) {
+      fetchProperty();
     }
-  }, [property]);
+  }, [id]);
 
-  
+  // ==========================================
+  // PROPERTY DATA
+  // ==========================================
 
-  
+  /*
+   * IMPORTANT:
+   * viewingFee comes directly from the property
+   * returned by MongoDB.
+   *
+   * There is NO hardcoded viewing fee here.
+   */
 
-  // ================= PROPERTY NOT FOUND =================
+  const propertyViewingFee = Number(
+    property?.viewingFee || 0
+  );
 
-  if (!property) {
+  // ==========================================
+  // OPEN PAYMENT MODAL
+  // ==========================================
+
+  const openPaymentModal = () => {
+    // Make sure MongoDB supplied a valid fee
+    if (
+      !propertyViewingFee ||
+      propertyViewingFee <= 0
+    ) {
+      setPaymentError(
+        "This property does not have a valid viewing fee."
+      );
+
+      return;
+    }
+
+    setPaymentError("");
+    setPaymentStatus(null);
+    setPhoneNumber("");
+    setShowPaymentModal(true);
+  };
+
+  // ==========================================
+  // CLOSE PAYMENT MODAL
+  // ==========================================
+
+  const closePaymentModal = () => {
+    if (paymentLoading) {
+      return;
+    }
+
+    if (
+      paymentStatus === "pending" ||
+      unlockLoading
+    ) {
+      return;
+    }
+
+    setShowPaymentModal(false);
+    setPaymentError("");
+  };
+
+  // ==========================================
+  // INITIATE M-PESA PAYMENT
+  // ==========================================
+
+  const initiatePayment = async (event) => {
+    event.preventDefault();
+
+    setPaymentError("");
+
+    // Validate viewing fee
+    if (
+      !propertyViewingFee ||
+      propertyViewingFee <= 0
+    ) {
+      setPaymentError(
+        "This property does not have a valid viewing fee."
+      );
+
+      return;
+    }
+
+    if (!phoneNumber.trim()) {
+      setPaymentError(
+        "Please enter your M-Pesa phone number."
+      );
+
+      return;
+    }
+
+    setPaymentLoading(true);
+    setPaymentStatus("initiating");
+
+    try {
+      /*
+       * IMPORTANT:
+       *
+       * We intentionally DO NOT send the viewing fee
+       * from the frontend.
+       *
+       * The backend receives propertyId and looks up
+       * the viewingFee directly from MongoDB.
+       *
+       * This prevents users from manipulating the
+       * payment amount in the browser.
+       */
+
+      const response = await fetch(
+        `${API_URL}/api/payments/initiate`,
+        {
+          method: "POST",
+
+          headers: {
+            "Content-Type": "application/json",
+          },
+
+          body: JSON.stringify({
+            propertyId: id,
+            phoneNumber: phoneNumber.trim(),
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(
+          data.message ||
+            "Failed to initiate M-Pesa payment"
+        );
+      }
+
+      console.log(
+        "Payment initiated:",
+        data
+      );
+
+      // Save payment ID
+      setPaymentId(data.paymentId);
+
+      setPaymentStatus("pending");
+    } catch (error) {
+      console.error(
+        "Payment initiation error:",
+        error
+      );
+
+      setPaymentError(
+        error.message ||
+          "Failed to initiate payment"
+      );
+
+      setPaymentStatus(null);
+    } finally {
+      setPaymentLoading(false);
+    }
+  };
+
+  // ==========================================
+  // UNLOCK PROTECTED PROPERTY
+  // ==========================================
+
+  const unlockProperty = async (
+    completedPaymentId
+  ) => {
+    try {
+      setUnlockLoading(true);
+
+      const response = await fetch(
+        `${API_URL}/api/properties/${id}/unlocked?paymentId=${completedPaymentId}`
+      );
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(
+          data.message ||
+            "Failed to unlock property details"
+        );
+      }
+
+      console.log(
+        "Protected property data:",
+        data
+      );
+
+      // ------------------------------------------
+      // Merge protected information into property
+      // ------------------------------------------
+
+      setProperty((currentProperty) => ({
+        ...currentProperty,
+
+        images:
+          data.protectedDetails?.images ||
+          currentProperty.images ||
+          [],
+
+        videos:
+          data.protectedDetails?.videos ||
+          currentProperty.videos ||
+          [],
+
+        mapUrl:
+          data.protectedDetails?.mapUrl ||
+          currentProperty.mapUrl,
+
+        landlordName:
+          data.protectedDetails?.landlordName ||
+          currentProperty.landlordName,
+
+        landlordPhone:
+          data.protectedDetails?.landlordPhone ||
+          currentProperty.landlordPhone,
+
+        landlordEmail:
+          data.protectedDetails?.landlordEmail ||
+          currentProperty.landlordEmail,
+
+        caretakerName:
+          data.protectedDetails?.caretakerName ||
+          currentProperty.caretakerName,
+
+        caretakerPhone:
+          data.protectedDetails?.caretakerPhone ||
+          currentProperty.caretakerPhone,
+      }));
+
+      setUnlocked(true);
+    } catch (error) {
+      console.error(
+        "Unlock property error:",
+        error
+      );
+
+      setPaymentError(
+        error.message ||
+          "Payment was successful, but the property details could not be unlocked."
+      );
+    } finally {
+      setUnlockLoading(false);
+    }
+  };
+
+  // ==========================================
+  // POLL PAYMENT STATUS
+  // ==========================================
+
+  useEffect(() => {
+    if (!paymentId) {
+      return;
+    }
+
+    let interval;
+
+    const checkStatus = async () => {
+      try {
+        const response = await fetch(
+          `${API_URL}/api/payments/status/${paymentId}`
+        );
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+          throw new Error(
+            data.message ||
+              "Failed to check payment status"
+          );
+        }
+
+        console.log(
+          "Payment status:",
+          data.payment.status
+        );
+
+        setPaymentStatus(
+          data.payment.status
+        );
+
+        // ==========================================
+        // PAYMENT COMPLETED
+        // ==========================================
+
+        if (
+          data.payment.status ===
+          "completed"
+        ) {
+          clearInterval(interval);
+
+          // Unlock protected information
+          await unlockProperty(paymentId);
+
+          setTimeout(() => {
+            setShowPaymentModal(false);
+          }, 1500);
+        }
+
+        // ==========================================
+        // PAYMENT FAILED
+        // ==========================================
+
+        if (
+          data.payment.status ===
+          "failed"
+        ) {
+          clearInterval(interval);
+
+          setPaymentError(
+            data.payment.resultDesc ||
+              "Payment failed or was cancelled."
+          );
+        }
+      } catch (error) {
+        console.error(
+          "Payment status error:",
+          error
+        );
+      }
+    };
+
+    // Check immediately
+    checkStatus();
+
+    // Then every 3 seconds
+    interval = setInterval(
+      checkStatus,
+      3000
+    );
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, [paymentId]);
+
+  // ==========================================
+  // LOADING
+  // ==========================================
+
+  if (loading) {
     return (
-      <section className="flex min-h-screen items-center justify-center bg-slate-50 px-6">
+      <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
+          <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-gray-200 border-t-blue-600" />
 
-          <h1 className="text-3xl font-bold text-slate-900">
+          <p className="mt-4 text-gray-600">
+            Loading property...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // ==========================================
+  // ERROR
+  // ==========================================
+
+  if (error || !property) {
+    return (
+      <div className="flex min-h-screen items-center justify-center px-4">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-900">
             Property Not Found
-          </h1>
+          </h2>
 
-          <p className="mt-3 text-slate-600">
-            Property ID: {id}
+          <p className="mt-2 text-gray-500">
+            {error ||
+              "The property you're looking for does not exist."}
           </p>
 
           <Link
             to="/rentals"
-            className="mt-6 inline-flex rounded-xl bg-blue-600 px-6 py-3 font-semibold text-white hover:bg-blue-700"
+            className="mt-6 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-3 font-semibold text-white hover:bg-blue-700"
           >
-            Browse Properties
+            <FaArrowLeft />
+            Back to Rentals
           </Link>
-
         </div>
-      </section>
+      </div>
     );
   }
 
+  // ==========================================
+  // PROPERTY DATA
+  // ==========================================
+
+  const {
+    title,
+    propertyType,
+    location,
+    price,
+    bedrooms,
+    bathrooms,
+    area,
+    description,
+    furnished,
+    featured,
+    images,
+    videos,
+    landlordName,
+    landlordPhone,
+    landlordEmail,
+    caretakerName,
+    caretakerPhone,
+    mapUrl,
+    available,
+  } = property;
+
+  const mainImage =
+    images?.length > 0
+      ? images[0]
+      : "/properties/property-placeholder.jpg";
+
+  const additionalImages =
+    images?.slice(1) || [];
+
+  // ==========================================
+  // RENDER
+  // ==========================================
+
   return (
-    <section className="min-h-screen bg-slate-50 py-10">
+    <div className="bg-gray-50">
+      <section className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
 
-      <div className="mx-auto w-full max-w-6xl px-6 lg:px-8">
-
-        {/* BACK */}
+        {/* ==========================================
+            BACK
+        ========================================== */}
 
         <Link
-          to="/rentals"
-          className="mb-6 inline-flex items-center gap-2 font-medium text-blue-600 hover:text-blue-700"
+          to="/rentals#property-results"
+          className="mb-6 inline-flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-700"
         >
           <FaArrowLeft />
-          Back to Properties
+          Back to Rentals
         </Link>
 
-        {/* PROPERTY */}
+        {/* ==========================================
+            MAIN PROPERTY IMAGE
+        ========================================== */}
 
-        <div className="overflow-hidden rounded-3xl bg-white shadow-lg">
+        <div className="relative overflow-hidden rounded-2xl">
+          <img
+            src={mainImage}
+            alt={title}
+            className="h-[420px] w-full object-cover md:h-[550px]"
+          />
 
-          {/* MAIN IMAGE */}
-
-          <div className="relative">
-
-            <img
-              src={property.image}
-              alt={property.title}
-              className="h-[350px] w-full object-cover md:h-[500px]"
-            />
-
-            <span className="absolute left-6 top-6 rounded-full bg-blue-600 px-5 py-2 font-semibold text-white">
-              {property.category}
-            </span>
-
+          <div className="absolute left-5 top-5 rounded-full bg-blue-600 px-4 py-2 text-sm font-semibold text-white">
+            {propertyType}
           </div>
 
-          {/* CONTENT */}
+          {featured && (
+            <div className="absolute right-5 top-5 rounded-full bg-white px-4 py-2 text-sm font-semibold text-blue-600 shadow">
+              Featured
+            </div>
+          )}
 
-          <div className="p-6 md:p-10">
+          {!available && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+              <span className="rounded-lg bg-red-600 px-6 py-3 text-lg font-bold text-white">
+                Not Available
+              </span>
+            </div>
+          )}
+        </div>
 
-            <div className="grid gap-10 lg:grid-cols-3">
+        {/* ==========================================
+            PROPERTY INFORMATION
+        ========================================== */}
 
-              {/* MAIN */}
+        <div className="mt-8 grid gap-8 lg:grid-cols-3">
 
-              <div className="lg:col-span-2">
+          {/* ==========================================
+              MAIN INFORMATION
+          ========================================== */}
 
-                {/* TITLE */}
+          <div className="lg:col-span-2">
 
-                <h1 className="text-3xl font-bold text-slate-900 md:text-4xl">
-                  {property.title}
-                </h1>
+            <h1 className="text-3xl font-bold text-gray-900 md:text-4xl">
+              {title}
+            </h1>
 
-                {/* LOCATION */}
+            <p className="mt-2 flex items-center gap-2 text-gray-500">
+              <FaMapMarkerAlt className="text-blue-600" />
+              {location}
+            </p>
 
-                <div className="mt-4 flex items-center gap-2 text-slate-500">
+            {/* Price */}
 
-                  <FaMapMarkerAlt className="text-blue-600" />
+            <div className="mt-5">
+              <span className="text-3xl font-bold text-blue-600">
+                KSh{" "}
+                {Number(price).toLocaleString()}
+              </span>
 
-                  <span>
-                    {property.location}
-                  </span>
+              <span className="ml-2 text-gray-500">
+                / month
+              </span>
+            </div>
 
-                </div>
+            {/* ==========================================
+                FEATURES
+            ========================================== */}
 
-                {/* PRICE */}
+            <div className="mt-6 grid grid-cols-2 gap-4 rounded-xl bg-white p-5 shadow-sm sm:grid-cols-4">
 
-                <div className="mt-6">
+              <div className="flex items-center gap-3">
+                <FaBed className="text-xl text-blue-600" />
 
-                  <p className="text-3xl font-bold text-blue-600">
-                    KSh {Number(property.price).toLocaleString()}
+                <div>
+                  <p className="text-sm text-gray-500">
+                    Bedrooms
                   </p>
 
-                  <p className="text-slate-500">
-                    per {property.period || "month"}
+                  <p className="font-semibold text-gray-900">
+                    {bedrooms}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <FaBath className="text-xl text-blue-600" />
+
+                <div>
+                  <p className="text-sm text-gray-500">
+                    Bathrooms
                   </p>
 
+                  <p className="font-semibold text-gray-900">
+                    {bathrooms}
+                  </p>
                 </div>
+              </div>
 
-                {/* FEATURES */}
+              <div className="flex items-center gap-3">
+                <FaRulerCombined className="text-xl text-blue-600" />
 
-                <div className="mt-8 grid grid-cols-3 border-y border-slate-200 py-6">
-
-                  <div className="text-center">
-
-                    <FaBed className="mx-auto text-2xl text-blue-600" />
-
-                    <p className="mt-2 font-semibold">
-                      {property.bedrooms}
-                    </p>
-
-                    <p className="text-sm text-slate-500">
-                      Bedrooms
-                    </p>
-
-                  </div>
-
-                  <div className="border-x border-slate-200 text-center">
-
-                    <FaBath className="mx-auto text-2xl text-blue-600" />
-
-                    <p className="mt-2 font-semibold">
-                      {property.bathrooms}
-                    </p>
-
-                    <p className="text-sm text-slate-500">
-                      Bathrooms
-                    </p>
-
-                  </div>
-
-                  <div className="text-center">
-
-                    <FaRulerCombined className="mx-auto text-2xl text-blue-600" />
-
-                    <p className="mt-2 font-semibold">
-                      {property.area}
-                    </p>
-
-                    <p className="text-sm text-slate-500">
-                      Sq Ft
-                    </p>
-
-                  </div>
-
-                </div>
-
-                {/* DESCRIPTION */}
-
-                <div className="mt-8">
-
-                  <h2 className="text-2xl font-bold text-slate-900">
-                    Property Description
-                  </h2>
-
-                  <p className="mt-4 leading-8 text-slate-600">
-                    {property.description}
+                <div>
+                  <p className="text-sm text-gray-500">
+                    Area
                   </p>
 
+                  <p className="font-semibold text-gray-900">
+                    {Number(area).toLocaleString()} sq ft
+                  </p>
                 </div>
+              </div>
 
-                {/* AMENITIES */}
+              <div className="flex items-center gap-3">
+                <FaCheckCircle className="text-xl text-blue-600" />
 
-                {property.amenities?.length > 0 && (
-                  <div className="mt-8">
+                <div>
+                  <p className="text-sm text-gray-500">
+                    Condition
+                  </p>
 
-                    <h2 className="text-2xl font-bold text-slate-900">
-                      Amenities
-                    </h2>
+                  <p className="font-semibold text-gray-900">
+                    {furnished
+                      ? "Furnished"
+                      : "Unfurnished"}
+                  </p>
+                </div>
+              </div>
 
-                    <div className="mt-4 flex flex-wrap gap-3">
+            </div>
 
-                      {property.amenities.map((amenity) => (
-                        <span
-                          key={amenity}
-                          className="rounded-full bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700"
-                        >
-                          {amenity}
-                        </span>
-                      ))}
+            {/* ==========================================
+                DESCRIPTION
+            ========================================== */}
 
+            <div className="mt-8 rounded-xl bg-white p-6 shadow-sm">
+
+              <h2 className="text-2xl font-bold text-gray-900">
+                Property Description
+              </h2>
+
+              <p className="mt-4 leading-7 text-gray-600">
+                {description}
+              </p>
+
+            </div>
+
+            {/* ==========================================
+                PROTECTED INFORMATION
+            ========================================== */}
+
+            <div className="mt-8 rounded-xl bg-white p-6 shadow-sm">
+
+              {!unlocked ? (
+                <>
+
+                  <div className="flex items-center gap-3">
+
+                    <div className="flex h-11 w-11 items-center justify-center rounded-full bg-blue-100">
+                      <FaLock className="text-blue-600" />
                     </div>
 
-                  </div>
-                )}
-
-                {/* ================================================= */}
-                {/* LOCKED INFORMATION */}
-                {/* ================================================= */}
-
-                {!isPaid ? (
-  <div
-    id="unlock-property"
-    className="scroll-mt-24 mt-12 rounded-3xl border border-blue-100 bg-blue-50 p-8"
-  >
-
-                    <div className="text-center">
-
-                      <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-blue-600 text-white">
-                        <FaLock className="text-2xl" />
-                      </div>
-
-                      <h2 className="mt-5 text-2xl font-bold text-slate-900">
-                        Unlock Full Property Information
+                    <div>
+                      <h2 className="text-2xl font-bold text-gray-900">
+                        Property Details
                       </h2>
 
-                      <p className="mx-auto mt-3 max-w-xl leading-7 text-slate-600">
-                        Pay to access additional photos, videos,
-                        exact location and landlord or caretaker
-                        contact information.
+                      <p className="text-sm text-gray-500">
+                        Additional information is protected
                       </p>
-
-                    </div>
-
-                    <div className="mx-auto mt-8 max-w-md space-y-4">
-
-                      <div className="flex items-center gap-3">
-                        <FaCheckCircle className="text-blue-600" />
-                        Additional photos
-                      </div>
-
-                      <div className="flex items-center gap-3">
-                        <FaCheckCircle className="text-blue-600" />
-                        Property videos
-                      </div>
-
-                      <div className="flex items-center gap-3">
-                        <FaCheckCircle className="text-blue-600" />
-                        Exact property location
-                      </div>
-
-                      <div className="flex items-center gap-3">
-                        <FaCheckCircle className="text-blue-600" />
-                        Landlord / caretaker details
-                      </div>
-
-                    </div>
-
-                    <div className="mt-8 text-center">
-
-                      <p className="text-sm text-slate-500">
-                        Property access fee
-                      </p>
-
-                      <p className="mt-1 text-3xl font-bold text-blue-600">
-                        KSh 500
-                      </p>
-
-                      <button
-                        type="button"
-                        onClick={() => setIsPaid(true)}
-                        className="mt-5 rounded-xl bg-blue-600 px-8 py-3 font-semibold text-white hover:bg-blue-700"
-                      >
-                        Pay & Unlock Property
-                      </button>
-
                     </div>
 
                   </div>
 
-                ) : (
-
-                  /* ================================================= */
-                  /* UNLOCKED */
-                  /* ================================================= */
-
-                  <div className="mt-12 space-y-8">
-
-                    <div className="rounded-2xl border border-green-200 bg-green-50 p-5">
-
-                      <div className="flex items-center gap-3">
-                        <FaCheckCircle className="text-green-600" />
-
-                        <p className="font-semibold text-green-800">
-                          Property information unlocked
-                        </p>
-                      </div>
-
-                    </div>
-
-                    {/* GALLERY */}
-
-                    {property.images?.length > 0 && (
-                      <div className="rounded-3xl bg-slate-50 p-6">
-
-                        <h2 className="text-2xl font-bold">
-                          Property Gallery
-                        </h2>
-
-                        <div className="mt-6 grid gap-5 sm:grid-cols-2">
-
-                          {property.images.map((image, index) => (
-                            <img
-                              key={index}
-                              src={image}
-                              alt={`${property.title} ${index + 1}`}
-                              className="h-64 w-full rounded-2xl object-cover"
-                            />
-                          ))}
-
-                        </div>
-
-                      </div>
-                    )}
-
-                    {/* VIDEO */}
-
-                    {property.video && (
-                      <div className="rounded-3xl bg-slate-50 p-6">
-
-                        <div className="flex items-center gap-3">
-
-                          <FaPlayCircle className="text-2xl text-blue-600" />
-
-                          <h2 className="text-2xl font-bold">
-                            Property Video
-                          </h2>
-
-                        </div>
-
-                        <video
-                          controls
-                          className="mt-6 w-full rounded-2xl"
-                        >
-                          <source
-                            src={property.video}
-                            type="video/mp4"
-                          />
-                        </video>
-
-                      </div>
-                    )}
-
-                    {/* MAP */}
-
-                    {property.mapUrl && (
-                      <div className="rounded-3xl bg-slate-50 p-6">
-
-                        <h2 className="text-2xl font-bold">
-                          Exact Location
-                        </h2>
-
-                        <div className="mt-5 overflow-hidden rounded-2xl">
-
-                          <iframe
-                            title="Property Location"
-                            src={property.mapUrl}
-                            width="100%"
-                            height="400"
-                            loading="lazy"
-                            allowFullScreen
-                            referrerPolicy="no-referrer-when-downgrade"
-                            className="border-0"
-                          />
-
-                        </div>
-
-                      </div>
-                    )}
-
-                    {/* LANDLORD */}
-
-                    {property.landlord && (
-                      <div className="rounded-3xl bg-slate-50 p-6">
-
-                        <h2 className="text-2xl font-bold">
-                          Landlord / Caretaker Details
-                        </h2>
-
-                        <div className="mt-5 space-y-3 text-slate-600">
-
-                          {property.landlord.name && (
-                            <p>
-                              <strong>Name:</strong>{" "}
-                              {property.landlord.name}
-                            </p>
-                          )}
-
-                          {property.landlord.phone && (
-                            <p>
-                              <strong>Phone:</strong>{" "}
-                              {property.landlord.phone}
-                            </p>
-                          )}
-
-                          {property.landlord.email && (
-                            <p>
-                              <strong>Email:</strong>{" "}
-                              {property.landlord.email}
-                            </p>
-                          )}
-
-                        </div>
-
-                      </div>
-                    )}
-
-                  </div>
-                )}
-
-              </div>
-
-              {/* SIDEBAR */}
-
-              <div>
-
-                <div className="sticky top-24 rounded-2xl border border-slate-200 bg-slate-50 p-6">
-
-                  <h2 className="text-xl font-bold">
-                    Interested in this property?
-                  </h2>
-
-                  <p className="mt-3 text-sm leading-6 text-slate-600">
-                    Contact us to arrange a viewing or get more
-                    information about this property.
+                  <p className="mt-4 text-gray-600">
+                    Unlock the exact location,
+                    landlord and caretaker contact
+                    information, additional photos,
+                    videos and map location by paying
+                    the property viewing fee.
                   </p>
 
-                  {!isPaid && (
-                    <button
-                      type="button"
-                      onClick={() => setIsPaid(true)}
-                      className="mt-6 flex w-full items-center justify-center rounded-xl bg-blue-600 px-6 py-3 font-semibold text-white hover:bg-blue-700"
-                    >
-                      Unlock Property
-                    </button>
-                  )}
+                  {/* VIEWING FEE FROM MONGODB */}
 
-                  <Link
-                    to="/contact"
-                    className="mt-3 flex w-full items-center justify-center rounded-xl border border-blue-600 px-6 py-3 font-semibold text-blue-600 hover:bg-blue-600 hover:text-white"
+                  <button
+                    type="button"
+                    onClick={openPaymentModal}
+                    disabled={
+                      !propertyViewingFee ||
+                      propertyViewingFee <= 0
+                    }
+                    className="mt-5 w-full rounded-lg bg-blue-600 px-6 py-3 font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    Contact Us
-                  </Link>
+                    {propertyViewingFee > 0
+                      ? `Pay KSh ${propertyViewingFee.toLocaleString()} Viewing Fee`
+                      : "Viewing Fee Not Available"}
+                  </button>
 
-                  <Link
-                    to="/rentals"
-                    className="mt-3 flex w-full items-center justify-center rounded-xl border border-slate-300 px-6 py-3 font-semibold text-slate-700 hover:bg-slate-100"
-                  >
-                    Browse More Properties
-                  </Link>
+                </>
+              ) : (
 
-                </div>
+                <>
 
-              </div>
+                  {/* UNLOCKED HEADER */}
+
+                  <div className="flex items-center gap-3">
+
+                    <div className="flex h-11 w-11 items-center justify-center rounded-full bg-green-100">
+                      <FaCheckCircle className="text-green-600" />
+                    </div>
+
+                    <div>
+                      <h2 className="text-2xl font-bold text-gray-900">
+                        Property Details Unlocked
+                      </h2>
+
+                      <p className="text-sm text-green-600">
+                        Payment successful
+                      </p>
+                    </div>
+
+                  </div>
+
+                  {/* EXACT LOCATION */}
+
+                  <div className="mt-6 border-t pt-5">
+
+                    <h3 className="flex items-center gap-2 font-semibold text-gray-900">
+                      <FaMapMarkerAlt className="text-blue-600" />
+                      Exact Location
+                    </h3>
+
+                    <p className="mt-2 text-gray-600">
+                      {location ||
+                        "Location not provided"}
+                    </p>
+
+                    {mapUrl && (
+                      <a
+                        href={mapUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-blue-600 hover:text-blue-700"
+                      >
+                        <FaMapMarkerAlt />
+                        Open Location Map
+                      </a>
+                    )}
+
+                  </div>
+
+                  {/* LANDLORD */}
+
+                  <div className="mt-5 border-t pt-5">
+
+                    <h3 className="flex items-center gap-2 font-semibold text-gray-900">
+                      <FaUser className="text-blue-600" />
+                      Landlord Information
+                    </h3>
+
+                    <div className="mt-3 space-y-2 text-gray-600">
+
+                      <p>
+                        <span className="font-medium">
+                          Name:
+                        </span>{" "}
+                        {landlordName ||
+                          "Not provided"}
+                      </p>
+
+                      <p className="flex items-center gap-2">
+                        <span className="font-medium">
+                          Phone:
+                        </span>
+
+                        {landlordPhone ? (
+                          <a
+                            href={`tel:${landlordPhone}`}
+                            className="text-blue-600 hover:underline"
+                          >
+                            {landlordPhone}
+                          </a>
+                        ) : (
+                          "Not provided"
+                        )}
+                      </p>
+
+                      {landlordEmail && (
+                        <p>
+                          <span className="font-medium">
+                            Email:
+                          </span>{" "}
+                          {landlordEmail}
+                        </p>
+                      )}
+
+                    </div>
+
+                  </div>
+
+                  {/* CARETAKER */}
+
+                  <div className="mt-5 border-t pt-5">
+
+                    <h3 className="flex items-center gap-2 font-semibold text-gray-900">
+                      <FaUser className="text-blue-600" />
+                      Caretaker Information
+                    </h3>
+
+                    <div className="mt-3 space-y-2 text-gray-600">
+
+                      <p>
+                        <span className="font-medium">
+                          Name:
+                        </span>{" "}
+                        {caretakerName ||
+                          "Not provided"}
+                      </p>
+
+                      <p className="flex items-center gap-2">
+                        <span className="font-medium">
+                          Phone:
+                        </span>
+
+                        {caretakerPhone ? (
+                          <a
+                            href={`tel:${caretakerPhone}`}
+                            className="text-blue-600 hover:underline"
+                          >
+                            {caretakerPhone}
+                          </a>
+                        ) : (
+                          "Not provided"
+                        )}
+                      </p>
+
+                    </div>
+
+                  </div>
+
+                </>
+              )}
 
             </div>
 
           </div>
 
+          {/* ==========================================
+              SUMMARY CARD
+          ========================================== */}
+
+          <div className="h-fit rounded-xl bg-white p-6 shadow-md lg:sticky lg:top-24">
+
+            <h2 className="text-xl font-bold text-gray-900">
+              Property Summary
+            </h2>
+
+            <div className="mt-5 space-y-4">
+
+              <div className="flex justify-between border-b pb-3">
+                <span className="text-gray-500">
+                  Property Type
+                </span>
+
+                <span className="font-semibold text-gray-900">
+                  {propertyType}
+                </span>
+              </div>
+
+              <div className="flex justify-between border-b pb-3">
+                <span className="text-gray-500">
+                  Location
+                </span>
+
+                <span className="font-semibold text-gray-900">
+                  {location}
+                </span>
+              </div>
+
+              <div className="flex justify-between border-b pb-3">
+                <span className="text-gray-500">
+                  Bedrooms
+                </span>
+
+                <span className="font-semibold text-gray-900">
+                  {bedrooms}
+                </span>
+              </div>
+
+              <div className="flex justify-between border-b pb-3">
+                <span className="text-gray-500">
+                  Bathrooms
+                </span>
+
+                <span className="font-semibold text-gray-900">
+                  {bathrooms}
+                </span>
+              </div>
+
+              <div className="flex justify-between">
+                <span className="text-gray-500">
+                  Area
+                </span>
+
+                <span className="font-semibold text-gray-900">
+                  {Number(area).toLocaleString()} sq ft
+                </span>
+              </div>
+
+            </div>
+
+            {!unlocked && (
+              <button
+                type="button"
+                onClick={openPaymentModal}
+                disabled={
+                  !propertyViewingFee ||
+                  propertyViewingFee <= 0
+                }
+                className="mt-6 w-full rounded-lg bg-blue-600 px-5 py-3 font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {propertyViewingFee > 0
+                  ? `Pay KSh ${propertyViewingFee.toLocaleString()} Viewing Fee`
+                  : "Viewing Fee Not Available"}
+              </button>
+            )}
+
+            {unlocked && (
+              <div className="mt-6 flex items-center justify-center gap-2 rounded-lg bg-green-50 px-4 py-3 text-sm font-semibold text-green-700">
+                <FaCheckCircle />
+                Details Unlocked
+              </div>
+            )}
+
+          </div>
+
         </div>
 
-      </div>
+        {/* ==========================================
+            MORE PHOTOS
+        ========================================== */}
 
-    </section>
+        <div className="mt-10 rounded-xl bg-white p-6 shadow-sm">
+
+          <div className="flex items-center justify-between">
+
+            <div>
+
+              <h2 className="text-2xl font-bold text-gray-900">
+                More Property Photos
+              </h2>
+
+              {!unlocked && (
+                <p className="mt-1 text-sm text-gray-500">
+                  Pay the viewing fee to unlock
+                  all property photos.
+                </p>
+              )}
+
+            </div>
+
+            {!unlocked && (
+              <FaLock className="text-xl text-gray-400" />
+            )}
+
+          </div>
+
+          <div className="mt-5">
+
+            {unlocked ? (
+              <>
+
+                {additionalImages.length > 0 ? (
+
+                  <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
+
+                    {additionalImages.map(
+                      (image, index) => (
+
+                        <div
+                          key={index}
+                          className="overflow-hidden rounded-lg"
+                        >
+
+                          <img
+                            src={image}
+                            alt={`${title} ${
+                              index + 2
+                            }`}
+                            className="h-48 w-full object-cover transition duration-300 hover:scale-105"
+                          />
+
+                        </div>
+
+                      )
+                    )}
+
+                  </div>
+
+                ) : (
+
+                  <div className="rounded-lg bg-gray-50 p-8 text-center">
+
+                    <p className="text-gray-500">
+                      No additional photos available.
+                    </p>
+
+                  </div>
+
+                )}
+
+              </>
+
+            ) : (
+
+              <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 p-10 text-center">
+
+                <FaLock className="mx-auto text-4xl text-gray-400" />
+
+                <h3 className="mt-4 font-semibold text-gray-800">
+                  Photos Locked
+                </h3>
+
+                <p className="mt-2 text-sm text-gray-500">
+                  Complete the viewing fee payment
+                  to access all property photos.
+                </p>
+
+                <button
+                  type="button"
+                  onClick={openPaymentModal}
+                  disabled={
+                    !propertyViewingFee ||
+                    propertyViewingFee <= 0
+                  }
+                  className="mt-5 rounded-lg bg-blue-600 px-6 py-3 font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {propertyViewingFee > 0
+                    ? `Pay KSh ${propertyViewingFee.toLocaleString()} Viewing Fee`
+                    : "Viewing Fee Not Available"}
+                </button>
+
+              </div>
+
+            )}
+
+          </div>
+
+        </div>
+
+        {/* ==========================================
+            VIDEOS
+        ========================================== */}
+
+        <div className="mt-8 rounded-xl bg-white p-6 shadow-sm">
+
+          <h2 className="flex items-center gap-2 text-2xl font-bold text-gray-900">
+            <FaVideo className="text-blue-600" />
+            Property Videos
+          </h2>
+
+          {!unlocked ? (
+
+            <div className="mt-5 rounded-lg bg-gray-100 p-8 text-center">
+
+              <FaLock className="mx-auto text-3xl text-gray-400" />
+
+              <p className="mt-3 font-semibold text-gray-700">
+                Property videos are locked
+              </p>
+
+              <p className="mt-1 text-sm text-gray-500">
+                Pay the viewing fee to access them.
+              </p>
+
+              <button
+                type="button"
+                onClick={openPaymentModal}
+                disabled={
+                  !propertyViewingFee ||
+                  propertyViewingFee <= 0
+                }
+                className="mt-5 rounded-lg bg-blue-600 px-6 py-3 font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {propertyViewingFee > 0
+                  ? `Pay KSh ${propertyViewingFee.toLocaleString()} Viewing Fee`
+                  : "Viewing Fee Not Available"}
+              </button>
+
+            </div>
+
+          ) : (
+
+            <>
+
+              {videos?.length > 0 ? (
+
+                <div className="mt-5 grid gap-5 md:grid-cols-2">
+
+                  {videos.map(
+                    (video, index) => (
+
+                      <video
+                        key={index}
+                        src={video}
+                        controls
+                        className="w-full rounded-lg"
+                      />
+
+                    )
+                  )}
+
+                </div>
+
+              ) : (
+
+                <div className="mt-5 rounded-lg bg-gray-50 p-8 text-center">
+
+                  <p className="text-gray-500">
+                    No property videos available.
+                  </p>
+
+                </div>
+
+              )}
+
+            </>
+
+          )}
+
+        </div>
+
+      </section>
+
+      {/* ==========================================
+          PAYMENT MODAL
+      ========================================== */}
+
+      {showPaymentModal && (
+
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
+
+          <div className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+
+            {/* Close */}
+
+            {!paymentLoading &&
+              paymentStatus !== "pending" &&
+              !unlockLoading && (
+
+                <button
+                  type="button"
+                  onClick={closePaymentModal}
+                  className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 text-gray-500 transition hover:bg-gray-200"
+                >
+                  <FaTimes />
+                </button>
+
+              )}
+
+            {/* ==========================================
+                PAYMENT SUCCESS
+            ========================================== */}
+
+            {paymentStatus ===
+              "completed" && unlocked ? (
+
+              <div className="py-8 text-center">
+
+                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
+
+                  <FaCheckCircle className="text-3xl text-green-600" />
+
+                </div>
+
+                <h2 className="mt-5 text-2xl font-bold text-gray-900">
+                  Payment Successful
+                </h2>
+
+                <p className="mt-2 text-gray-600">
+                  Your property details have
+                  been unlocked.
+                </p>
+
+              </div>
+
+            ) : unlockLoading ? (
+
+              /* ==========================================
+                  UNLOCKING
+              ========================================== */
+
+              <div className="py-8 text-center">
+
+                <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-gray-200 border-t-blue-600" />
+
+                <h3 className="mt-5 text-lg font-bold text-gray-900">
+                  Unlocking property details...
+                </h3>
+
+                <p className="mt-2 text-sm text-gray-500">
+                  Your payment was received.
+                </p>
+
+              </div>
+
+            ) : paymentStatus ===
+              "pending" ? (
+
+              /* ==========================================
+                  WAITING FOR PAYMENT
+              ========================================== */
+
+              <div className="py-8 text-center">
+
+                <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-gray-200 border-t-blue-600" />
+
+                <h3 className="mt-5 text-lg font-bold text-gray-900">
+                  Waiting for payment
+                </h3>
+
+                <p className="mt-2 text-sm leading-6 text-gray-500">
+                  Check your phone and complete
+                  the M-Pesa payment prompt.
+                </p>
+
+                <p className="mt-4 text-xs text-gray-400">
+                  This page will automatically
+                  detect your payment.
+                </p>
+
+              </div>
+
+            ) : (
+
+              /* ==========================================
+                  PAYMENT FORM
+              ========================================== */
+
+              <>
+
+                <div className="pr-8">
+
+                  <div className="flex items-center gap-3">
+
+                    <div className="flex h-11 w-11 items-center justify-center rounded-full bg-blue-100">
+                      <FaMobileAlt className="text-blue-600" />
+                    </div>
+
+                    <div>
+
+                      <h2 className="text-xl font-bold text-gray-900">
+                        Unlock Property Details
+                      </h2>
+
+                      <p className="text-sm text-gray-500">
+                        Secure M-Pesa payment
+                      </p>
+
+                    </div>
+
+                  </div>
+
+                </div>
+
+                {/* ==========================================
+                    AMOUNT FROM MONGODB
+                ========================================== */}
+
+                <div className="mt-6 rounded-xl bg-blue-50 p-4 text-center">
+
+                  <p className="text-sm text-gray-600">
+                    Property Viewing Fee
+                  </p>
+
+                  <p className="mt-1 text-3xl font-bold text-blue-600">
+                    KSh{" "}
+                    {propertyViewingFee.toLocaleString()}
+                  </p>
+
+                </div>
+
+                <form
+                  onSubmit={initiatePayment}
+                  className="mt-6"
+                >
+
+                  <label
+                    htmlFor="phoneNumber"
+                    className="block text-sm font-semibold text-gray-700"
+                  >
+                    M-Pesa Phone Number
+                  </label>
+
+                  <input
+                    id="phoneNumber"
+                    type="tel"
+                    value={phoneNumber}
+                    onChange={(event) =>
+                      setPhoneNumber(
+                        event.target.value
+                      )
+                    }
+                    placeholder="07XXXXXXXX"
+                    disabled={paymentLoading}
+                    className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-gray-100"
+                  />
+
+                  {paymentError && (
+                    <div className="mt-3 rounded-lg bg-red-50 p-3 text-sm text-red-600">
+                      {paymentError}
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={
+                      paymentLoading ||
+                      !propertyViewingFee ||
+                      propertyViewingFee <= 0
+                    }
+                    className="mt-5 flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-6 py-3 font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+
+                    {paymentLoading ? (
+
+                      <>
+                        <span className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+
+                        Sending STK Push...
+                      </>
+
+                    ) : (
+
+                      <>
+                        <FaMobileAlt />
+
+                        Pay KSh{" "}
+                        {propertyViewingFee.toLocaleString()}{" "}
+                        with M-Pesa
+                      </>
+
+                    )}
+
+                  </button>
+
+                  <p className="mt-4 text-center text-xs text-gray-400">
+                    You will receive an M-Pesa
+                    prompt on your phone.
+                  </p>
+
+                </form>
+
+              </>
+
+            )}
+
+          </div>
+
+        </div>
+
+      )}
+
+    </div>
   );
 };
 
