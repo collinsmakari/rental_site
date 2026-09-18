@@ -37,56 +37,35 @@ export const initiatePayment = async (req, res) => {
     }
 
     // =================================================
-    // GET VIEWING FEE FROM MONGODB
+    // GET VIEWING FEE DIRECTLY FROM MONGODB
     // =================================================
 
     const amount = Number(property.viewingFee);
 
-    console.log(
-      "================================="
-    );
+    const normalizedPhone =
+      String(phoneNumber).trim();
 
-    console.log(
-      "========== PROPERTY PAYMENT =========="
-    );
-
-    console.log(
-      "Property ID:",
-      property._id.toString()
-    );
-
-    console.log(
-      "Property:",
-      property.title
-    );
-
+    console.log("=================================");
+    console.log("========== PROPERTY PAYMENT ==========");
+    console.log("Property ID:", property._id.toString());
+    console.log("Property:", property.title);
     console.log(
       "Viewing Fee from MongoDB:",
       property.viewingFee
     );
-
     console.log(
-      "Amount sent to M-Pesa:",
-      amount
+      "Viewing Fee Type:",
+      typeof property.viewingFee
     );
-
-    console.log(
-      "Phone Number:",
-      phoneNumber
-    );
-
-    console.log(
-      "================================="
-    );
+    console.log("Amount sent to M-Pesa:", amount);
+    console.log("Phone Number:", normalizedPhone);
+    console.log("=================================");
 
     // =================================================
     // VALIDATE VIEWING FEE
     // =================================================
 
-    if (
-      !Number.isFinite(amount) ||
-      amount <= 0
-    ) {
+    if (!Number.isFinite(amount) || amount <= 0) {
       return res.status(400).json({
         success: false,
         message:
@@ -95,79 +74,24 @@ export const initiatePayment = async (req, res) => {
     }
 
     // =================================================
-    // OPTIONAL DUPLICATE PROTECTION
+    // CREATE A NEW PAYMENT
     // =================================================
     //
-    // This prevents accidental double-clicks by the SAME
-    // customer while allowing DIFFERENT customers to
-    // make payments simultaneously.
+    // IMPORTANT:
     //
-    // We only look for a recent pending transaction
-    // belonging to the same property + phone number.
+    // Every request creates its OWN payment.
     //
-    // Different users are NOT blocked.
-    // =================================================
-
-    const normalizedPhone =
-      String(phoneNumber).trim();
-
-    const existingPayment =
-      await Payment.findOne({
-        property: property._id,
-        phoneNumber: normalizedPhone,
-        status: "pending",
-        createdAt: {
-          $gte:
-            new Date(
-              Date.now() -
-                5 * 60 * 1000
-            ),
-        },
-      }).sort({
-        createdAt: -1,
-      });
-
-    if (
-      existingPayment &&
-      existingPayment.checkoutRequestId
-    ) {
-      console.log(
-        "========== EXISTING PAYMENT =========="
-      );
-
-      console.log(
-        "Reusing pending payment:",
-        existingPayment._id
-      );
-
-      console.log(
-        "Checkout Request ID:",
-        existingPayment.checkoutRequestId
-      );
-
-      console.log(
-        "======================================="
-      );
-
-      return res.status(200).json({
-        success: true,
-        message:
-          "An M-Pesa payment is already being processed",
-        paymentId:
-          existingPayment._id,
-        propertyId:
-          property._id,
-        amount:
-          existingPayment.amount,
-        checkoutRequestId:
-          existingPayment.checkoutRequestId,
-        status:
-          existingPayment.status,
-      });
-    }
-
-    // =================================================
-    // CREATE PAYMENT FIRST
+    // We deliberately do NOT search for an existing
+    // pending payment.
+    //
+    // This allows:
+    //
+    // Customer A -> Payment A -> STK A
+    // Customer B -> Payment B -> STK B
+    // Customer C -> Payment C -> STK C
+    //
+    // Even the same customer can intentionally start
+    // another transaction.
     // =================================================
 
     const payment = await Payment.create({
@@ -177,81 +101,44 @@ export const initiatePayment = async (req, res) => {
       status: "pending",
     });
 
-    console.log(
-      "================================="
-    );
-
-    console.log(
-      "========== PAYMENT CREATED =========="
-    );
-
-    console.log(
-      "Payment ID:",
-      payment._id.toString()
-    );
-
+    console.log("=================================");
+    console.log("========== PAYMENT CREATED ==========");
+    console.log("Payment ID:", payment._id.toString());
     console.log(
       "Property ID:",
       property._id.toString()
     );
-
-    console.log(
-      "Property:",
-      property.title
-    );
-
-    console.log(
-      "Viewing Fee:",
-      amount
-    );
-
-    console.log(
-      "Status:",
-      payment.status
-    );
-
-    console.log(
-      "================================="
-    );
+    console.log("Property:", property.title);
+    console.log("Viewing Fee:", amount);
+    console.log("Phone:", normalizedPhone);
+    console.log("Status:", payment.status);
+    console.log("=================================");
 
     // =================================================
-    // INITIATE STK PUSH
-    // =================================================
-    //
-    // IMPORTANT:
-    // There is no global payment lock here.
-    //
-    // If:
-    //
-    // Customer A -> initiatePayment()
-    // Customer B -> initiatePayment()
-    // Customer C -> initiatePayment()
-    //
-    // Node.js can process all three independently.
+    // INITIATE M-PESA STK PUSH
     // =================================================
 
     try {
-      const stkResponse =
-        await initiateSTKPush({
-          phoneNumber:
-            normalizedPhone,
+      const stkResponse = await initiateSTKPush({
+        phoneNumber: normalizedPhone,
 
-          amount,
+        amount,
 
-          accountReference:
-            `PROPERTY-${property._id}`,
+        accountReference:
+          `PROPERTY-${property._id}`,
 
-          transactionDescription:
-            "Property Viewing Fee",
-        });
+        transactionDescription:
+          "Property Viewing Fee",
+      });
 
       // =================================================
       // VALIDATE SAFARICOM RESPONSE
       // =================================================
 
       if (
-        !stkResponse?.MerchantRequestID ||
-        !stkResponse?.CheckoutRequestID
+        !stkResponse ||
+        !stkResponse.MerchantRequestID ||
+        !stkResponse.CheckoutRequestID
       ) {
         throw new Error(
           "M-Pesa did not return valid transaction identifiers"
@@ -259,7 +146,10 @@ export const initiatePayment = async (req, res) => {
       }
 
       // =================================================
-      // UPDATE ONLY THIS PAYMENT
+      // SAVE M-PESA TRANSACTION IDENTIFIERS
+      // =================================================
+      //
+      // Update ONLY the payment created above.
       // =================================================
 
       const updatedPayment =
@@ -288,13 +178,10 @@ export const initiatePayment = async (req, res) => {
       }
 
       // =================================================
-      // LOG
+      // LOG SUCCESS
       // =================================================
 
-      console.log(
-        "================================="
-      );
-
+      console.log("=================================");
       console.log(
         "========== STK PUSH ACCEPTED =========="
       );
@@ -334,12 +221,10 @@ export const initiatePayment = async (req, res) => {
         updatedPayment.status
       );
 
-      console.log(
-        "================================="
-      );
+      console.log("=================================");
 
       // =================================================
-      // RETURN IMMEDIATELY
+      // RETURN RESPONSE TO FRONTEND
       // =================================================
 
       return res.status(200).json({
@@ -364,15 +249,11 @@ export const initiatePayment = async (req, res) => {
       });
 
     } catch (stkError) {
-
       // =================================================
       // STK PUSH FAILED
       // =================================================
 
-      console.error(
-        "================================="
-      );
-
+      console.error("=================================");
       console.error(
         "========== STK PUSH FAILED =========="
       );
@@ -388,16 +269,29 @@ export const initiatePayment = async (req, res) => {
       );
 
       console.error(
+        "Property:",
+        property.title
+      );
+
+      console.error(
+        "Phone:",
+        normalizedPhone
+      );
+
+      console.error(
+        "Amount:",
+        amount
+      );
+
+      console.error(
         "Error:",
         stkError.message
       );
 
-      console.error(
-        "================================="
-      );
+      console.error("=================================");
 
       // =================================================
-      // MARK ONLY THIS PAYMENT FAILED
+      // MARK THIS PAYMENT AS FAILED
       // =================================================
 
       await Payment.findByIdAndUpdate(
@@ -430,24 +324,16 @@ export const initiatePayment = async (req, res) => {
     }
 
   } catch (error) {
-
     // =================================================
     // GENERAL ERROR
     // =================================================
 
-    console.error(
-      "================================="
-    );
-
+    console.error("=================================");
     console.error(
       "========== INITIATE PAYMENT ERROR =========="
     );
-
     console.error(error);
-
-    console.error(
-      "================================="
-    );
+    console.error("=================================");
 
     return res.status(500).json({
       success: false,
@@ -465,10 +351,7 @@ export const initiatePayment = async (req, res) => {
 // M-PESA CALLBACK
 // =====================================================
 
-export const mpesaCallback = async (
-  req,
-  res
-) => {
+export const mpesaCallback = async (req, res) => {
   try {
     console.log("\n=================================");
     console.log("========== MPESA CALLBACK ==========");
@@ -484,7 +367,7 @@ export const mpesaCallback = async (
     );
 
     // =================================================
-    // EXTRACT CALLBACK
+    // EXTRACT STK CALLBACK
     // =================================================
 
     const stkCallback =
@@ -497,6 +380,7 @@ export const mpesaCallback = async (
 
       return res.status(200).json({
         ResultCode: 0,
+
         ResultDesc:
           "Callback received",
       });
@@ -541,26 +425,28 @@ export const mpesaCallback = async (
 
       return res.status(200).json({
         ResultCode: 0,
+
         ResultDesc:
           "Callback received",
       });
     }
 
     // =================================================
-    // FIND PAYMENT BY ITS OWN CHECKOUT ID
+    // FIND THE EXACT PAYMENT
     // =================================================
     //
-    // This is VERY important for simultaneous payments.
+    // This is the most important part for
+    // simultaneous transactions.
     //
-    // NEVER use:
+    // We NEVER use:
     //
     // Payment.findOne({ status: "pending" })
     //
-    // because that could update the wrong customer's
+    // because that could update another customer's
     // payment.
     //
-    // Each Safaricom callback identifies exactly one
-    // payment through CheckoutRequestID.
+    // Safaricom gives us CheckoutRequestID, so we use
+    // that exact identifier.
     // =================================================
 
     const payment =
@@ -577,6 +463,7 @@ export const mpesaCallback = async (
 
       return res.status(200).json({
         ResultCode: 0,
+
         ResultDesc:
           "Callback received",
       });
@@ -587,16 +474,24 @@ export const mpesaCallback = async (
       payment._id.toString()
     );
 
+    console.log(
+      "Payment property:",
+      payment.property.toString()
+    );
+
+    console.log(
+      "Payment amount:",
+      payment.amount
+    );
+
     // =================================================
-    // EXTRACT M-PESA METADATA
+    // EXTRACT CALLBACK METADATA
     // =================================================
 
     const items =
       CallbackMetadata?.Item || [];
 
-    const getMetadataValue = (
-      name
-    ) => {
+    const getMetadataValue = (name) => {
       const item =
         items.find(
           (item) =>
@@ -617,19 +512,51 @@ export const mpesaCallback = async (
       )
         ?.toString() || null;
 
+    const callbackAmount =
+      getMetadataValue(
+        "Amount"
+      );
+
+    const callbackPhoneNumber =
+      getMetadataValue(
+        "PhoneNumber"
+      );
+
+    console.log(
+      "M-Pesa Receipt:",
+      mpesaReceiptNumber
+    );
+
+    console.log(
+      "Transaction Date:",
+      transactionDate
+    );
+
+    console.log(
+      "Callback Amount:",
+      callbackAmount
+    );
+
+    console.log(
+      "Callback Phone:",
+      callbackPhoneNumber
+    );
+
     // =================================================
-    // PAYMENT SUCCESS
+    // SUCCESSFUL PAYMENT
     // =================================================
 
     if (Number(ResultCode) === 0) {
-
       console.log(
         "========== PAYMENT SUCCESS =========="
       );
 
-      // ===============================================
-      // GENERATE ACCESS TOKEN
-      // ===============================================
+      // =================================================
+      // GENERATE PROPERTY ACCESS TOKEN
+      // =================================================
+      //
+      // Every completed payment gets its own token.
+      // =================================================
 
       const accessToken =
         payment.accessToken ||
@@ -637,65 +564,103 @@ export const mpesaCallback = async (
           .randomBytes(32)
           .toString("hex");
 
-      // ===============================================
-      // ATOMIC UPDATE
-      // ===============================================
+      // =================================================
+      // ATOMIC PAYMENT UPDATE
+      // =================================================
 
-      await Payment.findOneAndUpdate(
-        {
-          checkoutRequestId:
-            CheckoutRequestID,
-        },
-
-        {
-          $set: {
-            merchantRequestId:
-              MerchantRequestID,
-
-            resultCode:
-              Number(ResultCode),
-
-            resultDescription:
-              ResultDesc,
-
-            status:
-              "completed",
-
-            accessToken,
-
-            mpesaReceiptNumber,
-
-            transactionDate,
+      const updatedPayment =
+        await Payment.findOneAndUpdate(
+          {
+            checkoutRequestId:
+              CheckoutRequestID,
           },
-        },
 
-        {
-          new: true,
-        }
+          {
+            $set: {
+              merchantRequestId:
+                MerchantRequestID,
+
+              resultCode:
+                Number(ResultCode),
+
+              resultDescription:
+                ResultDesc,
+
+              status:
+                "completed",
+
+              accessToken,
+
+              mpesaReceiptNumber,
+
+              transactionDate,
+            },
+          },
+
+          {
+            new: true,
+          }
+        );
+
+      if (!updatedPayment) {
+        console.error(
+          "Payment disappeared during callback update:",
+          CheckoutRequestID
+        );
+
+        return res.status(200).json({
+          ResultCode: 0,
+
+          ResultDesc:
+            "Callback received",
+        });
+      }
+
+      console.log(
+        "================================="
       );
 
       console.log(
-        "Payment completed:",
-        payment._id.toString()
+        "Payment completed successfully"
+      );
+
+      console.log(
+        "Payment ID:",
+        updatedPayment._id.toString()
+      );
+
+      console.log(
+        "Checkout Request ID:",
+        CheckoutRequestID
       );
 
       console.log(
         "M-Pesa Receipt:",
-        mpesaReceiptNumber
+        updatedPayment.mpesaReceiptNumber
       );
 
       console.log(
         "Transaction Date:",
-        transactionDate
+        updatedPayment.transactionDate
       );
 
       console.log(
         "Access Token Generated:",
-        Boolean(accessToken)
+        Boolean(
+          updatedPayment.accessToken
+        )
+      );
+
+      console.log(
+        "Status:",
+        updatedPayment.status
+      );
+
+      console.log(
+        "================================="
       );
 
     } else {
-
       // =================================================
       // PAYMENT FAILED
       // =================================================
@@ -710,6 +675,11 @@ export const mpesaCallback = async (
       );
 
       console.log(
+        "Checkout Request ID:",
+        CheckoutRequestID
+      );
+
+      console.log(
         "Result Code:",
         ResultCode
       );
@@ -719,9 +689,9 @@ export const mpesaCallback = async (
         ResultDesc
       );
 
-      // ===============================================
-      // ATOMIC UPDATE
-      // ===============================================
+      // =================================================
+      // ATOMIC FAILED PAYMENT UPDATE
+      // =================================================
 
       await Payment.findOneAndUpdate(
         {
@@ -749,10 +719,14 @@ export const mpesaCallback = async (
           new: true,
         }
       );
+
+      console.log(
+        "Payment marked as failed"
+      );
     }
 
     console.log(
-      "Payment callback processed"
+      "Payment callback processed successfully"
     );
 
     console.log(
@@ -776,6 +750,9 @@ export const mpesaCallback = async (
     });
 
   } catch (error) {
+    // =================================================
+    // CALLBACK ERROR
+    // =================================================
 
     console.error(
       "================================="
@@ -792,7 +769,7 @@ export const mpesaCallback = async (
     );
 
     // =================================================
-    // ALWAYS ACKNOWLEDGE CALLBACK
+    // ALWAYS ACKNOWLEDGE SAFARICOM
     // =================================================
 
     return res.status(200).json({
@@ -817,7 +794,20 @@ export const checkPaymentStatus = async (
       req.params;
 
     // =================================================
-    // FIND THIS PAYMENT ONLY
+    // VALIDATE PAYMENT ID
+    // =================================================
+
+    if (!paymentId) {
+      return res.status(400).json({
+        success: false,
+
+        message:
+          "Payment ID is required",
+      });
+    }
+
+    // =================================================
+    // FIND ONLY THIS PAYMENT
     // =================================================
 
     const payment =
@@ -828,13 +818,14 @@ export const checkPaymentStatus = async (
     if (!payment) {
       return res.status(404).json({
         success: false,
+
         message:
           "Payment not found",
       });
     }
 
     // =================================================
-    // RESPONSE
+    // RETURN PAYMENT STATUS
     // =================================================
 
     return res.status(200).json({
@@ -865,7 +856,8 @@ export const checkPaymentStatus = async (
         resultDescription:
           payment.resultDescription,
 
-        // Only expose after successful payment
+        // Only expose access token after successful
+        // payment.
         accessToken:
           payment.status ===
           "completed"
@@ -875,10 +867,18 @@ export const checkPaymentStatus = async (
     });
 
   } catch (error) {
+    console.error(
+      "================================="
+    );
 
     console.error(
-      "Check payment status error:",
-      error
+      "CHECK PAYMENT STATUS ERROR"
+    );
+
+    console.error(error);
+
+    console.error(
+      "================================="
     );
 
     return res.status(500).json({
