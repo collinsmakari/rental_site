@@ -5,7 +5,9 @@ import RentalHero from "../components/rentals/RentalHero";
 import CategoryFilter from "../components/rentals/CategoryFilter";
 import PropertyGrid from "../components/rentals/PropertyGrid";
 
-const API_URL = `${import.meta.env.VITE_API_URL}/api/properties`;
+const API_URL = `${
+  import.meta.env.VITE_API_URL || "http://localhost:5000"
+}/api/properties`;
 
 const Rentals = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -64,14 +66,18 @@ const Rentals = () => {
 
         console.log("Properties received:", data);
 
-        // Backend returns:
+        // Backend response:
         // {
         //   success: true,
         //   count: ...,
         //   properties: [...]
         // }
 
-        setProperties(data.properties || []);
+        setProperties(
+          Array.isArray(data.properties)
+            ? data.properties
+            : []
+        );
       } catch (error) {
         console.error(
           "Failed to fetch properties:",
@@ -90,28 +96,7 @@ const Rentals = () => {
   }, []);
 
   // ===============================
-  // SCROLL TO RESULTS
-  // ===============================
-
-  useEffect(() => {
-    const hash = window.location.hash;
-
-    if (hash === "#property-results") {
-      const timer = setTimeout(() => {
-        document
-          .getElementById("property-results")
-          ?.scrollIntoView({
-            behavior: "smooth",
-            block: "start",
-          });
-      }, 200);
-
-      return () => clearTimeout(timer);
-    }
-  }, []);
-
-  // ===============================
-  // HANDLE URL SEARCH
+  // SYNCHRONIZE URL WITH STATE
   // ===============================
 
   useEffect(() => {
@@ -122,57 +107,97 @@ const Rentals = () => {
   }, [urlType, urlLocation, urlMaxPrice]);
 
   // ===============================
+  // SCROLL TO RESULTS
+  // ===============================
+
+  useEffect(() => {
+    if (window.location.hash !== "#property-results") {
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      document
+        .getElementById("property-results")
+        ?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+    }, 200);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  // ===============================
   // FILTER PROPERTIES
   // ===============================
 
   const filteredProperties = properties.filter(
-  (property) => {
-    // ===============================
-    // CATEGORY
-    // ===============================
+    (property) => {
+      // ===============================
+      // CATEGORY
+      // ===============================
 
-    const matchesCategory =
-      selectedCategory === "All" ||
-      property.propertyType === selectedCategory;
+      const matchesCategory =
+        selectedCategory === "All" ||
+        String(property.propertyType || "").toLowerCase() ===
+          String(selectedCategory).toLowerCase();
 
-    // ===============================
-    // LOCATION
-    // ===============================
+      // ===============================
+      // LOCATION
+      // ===============================
 
-    const matchesLocation =
-      location.trim() === "" ||
-      property.location
-        ?.toLowerCase()
-        .includes(
-          location.trim().toLowerCase()
+      const propertyLocation = String(
+        property.location || ""
+      ).toLowerCase();
+
+      const searchLocation = location
+        .trim()
+        .toLowerCase();
+
+      const matchesLocation =
+        searchLocation === "" ||
+        propertyLocation.includes(searchLocation);
+
+      // ===============================
+      // PRICE
+      // ===============================
+
+      const propertyPrice = Number(property.price);
+      const maximumPrice = Number(maxPrice);
+
+      const matchesPrice =
+        maxPrice === "" ||
+        (
+          Number.isFinite(propertyPrice) &&
+          Number.isFinite(maximumPrice) &&
+          propertyPrice <= maximumPrice
         );
 
-    // ===============================
-    // PRICE
-    // ===============================
+      return (
+        matchesCategory &&
+        matchesLocation &&
+        matchesPrice
+      );
+    }
+  );
 
-    const matchesPrice =
-      maxPrice === "" ||
-      Number(property.price) <= Number(maxPrice);
-
-    // ===============================
-    // PROPERTY TYPE
-    // ===============================
-
-    const matchesPropertyType =
-      propertyType === "" ||
-      property.propertyType === propertyType;
-
-    return (
-      matchesCategory &&
-      matchesLocation &&
-      matchesPrice &&
-      matchesPropertyType
-    );
-  }
-);
   // ===============================
-  // SEARCH
+  // SCROLL HELPER
+  // ===============================
+
+  const scrollToResults = () => {
+    setTimeout(() => {
+      document
+        .getElementById("property-results")
+        ?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+    }, 100);
+  };
+
+  // ===============================
+  // HANDLE SEARCH
   // ===============================
 
   const handleSearch = () => {
@@ -196,14 +221,7 @@ const Rentals = () => {
       propertyType || "All"
     );
 
-    setTimeout(() => {
-      document
-        .getElementById("property-results")
-        ?.scrollIntoView({
-          behavior: "smooth",
-          block: "start",
-        });
-    }, 100);
+    scrollToResults();
   };
 
   // ===============================
@@ -218,14 +236,7 @@ const Rentals = () => {
 
     setSearchParams({});
 
-    setTimeout(() => {
-      document
-        .getElementById("property-results")
-        ?.scrollIntoView({
-          behavior: "smooth",
-          block: "start",
-        });
-    }, 100);
+    scrollToResults();
   };
 
   // ===============================
@@ -233,6 +244,7 @@ const Rentals = () => {
   // ===============================
 
   const handleCategoryChange = (category) => {
+    // ALL
     if (category === "All") {
       handleClearFilters();
       return;
@@ -255,14 +267,7 @@ const Rentals = () => {
 
     setSearchParams(params);
 
-    setTimeout(() => {
-      document
-        .getElementById("property-results")
-        ?.scrollIntoView({
-          behavior: "smooth",
-          block: "start",
-        });
-    }, 100);
+    scrollToResults();
   };
 
   // ===============================
@@ -322,31 +327,57 @@ const Rentals = () => {
           className="scroll-mt-32 pt-5"
         >
 
-          {/* LOADING */}
+          {/* ===============================
+              LOADING
+          =============================== */}
 
           {loading && (
             <div className="py-16 text-center">
+              <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-blue-600" />
+
               <p className="text-slate-500">
                 Loading properties...
               </p>
             </div>
           )}
 
-          {/* ERROR */}
+          {/* ===============================
+              ERROR
+          =============================== */}
 
           {!loading && error && (
             <div className="rounded-lg bg-red-50 p-6 text-center">
-              <p className="text-red-600">
+              <p className="mb-4 text-red-600">
                 {error}
               </p>
+
+              <button
+                type="button"
+                onClick={() => window.location.reload()}
+                className="
+                  rounded-lg
+                  bg-blue-600
+                  px-5
+                  py-2
+                  text-sm
+                  font-medium
+                  text-white
+                  transition
+                  hover:bg-blue-700
+                "
+              >
+                Try Again
+              </button>
             </div>
           )}
 
-          {/* RESULTS */}
+          {/* ===============================
+              RESULTS
+          =============================== */}
 
           {!loading && !error && (
             <>
-              {/* Result Count */}
+              {/* RESULT COUNT */}
 
               <div className="mb-4">
                 <p className="text-sm text-slate-500">
@@ -360,11 +391,43 @@ const Rentals = () => {
                 </p>
               </div>
 
-              {/* Property Grid */}
+              {/* PROPERTY GRID */}
 
-              <PropertyGrid
-                properties={filteredProperties}
-              />
+              {filteredProperties.length > 0 ? (
+                <PropertyGrid
+                  properties={filteredProperties}
+                />
+              ) : (
+                <div className="rounded-xl bg-white px-6 py-16 text-center shadow-sm">
+                  <h3 className="text-lg font-semibold text-slate-800">
+                    No properties found
+                  </h3>
+
+                  <p className="mt-2 text-sm text-slate-500">
+                    Try changing your location, property
+                    type, or maximum price.
+                  </p>
+
+                  <button
+                    type="button"
+                    onClick={handleClearFilters}
+                    className="
+                      mt-5
+                      rounded-lg
+                      bg-blue-600
+                      px-5
+                      py-2.5
+                      text-sm
+                      font-medium
+                      text-white
+                      transition
+                      hover:bg-blue-700
+                    "
+                  >
+                    Clear Filters
+                  </button>
+                </div>
+              )}
             </>
           )}
 

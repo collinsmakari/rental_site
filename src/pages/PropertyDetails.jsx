@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
   FaBed,
@@ -15,7 +15,8 @@ import {
   FaVideo,
 } from "react-icons/fa";
 
-const API_URL = import.meta.env.VITE_API_URL;
+const API_URL =
+  import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 const PropertyDetails = () => {
   const { id } = useParams();
@@ -24,7 +25,10 @@ const PropertyDetails = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // Payment states
+  // --------------------------------------------------
+  // PAYMENT STATES
+  // --------------------------------------------------
+
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState("");
   const [paymentId, setPaymentId] = useState(null);
@@ -32,20 +36,29 @@ const PropertyDetails = () => {
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [paymentError, setPaymentError] = useState("");
 
-  // Unlock states
+  // --------------------------------------------------
+  // UNLOCK STATES
+  // --------------------------------------------------
+
   const [unlocked, setUnlocked] = useState(false);
   const [unlockLoading, setUnlockLoading] = useState(false);
+
+  // Prevent multiple unlock requests
+  const unlockingRef = useRef(false);
 
   // --------------------------------------------------
   // FETCH PUBLIC PROPERTY DETAILS
   // --------------------------------------------------
+
   useEffect(() => {
     const fetchProperty = async () => {
       try {
         setLoading(true);
         setError("");
 
-        const response = await fetch(`${API_URL}/api/properties/${id}`);
+        const response = await fetch(
+          `${API_URL}/api/properties/${id}`
+        );
 
         const data = await response.json();
 
@@ -64,7 +77,10 @@ const PropertyDetails = () => {
         setProperty(data.property);
       } catch (err) {
         console.error("Property fetch error:", err);
-        setError(err.message || "Failed to load property.");
+
+        setError(
+          err.message || "Failed to load property."
+        );
       } finally {
         setLoading(false);
       }
@@ -78,26 +94,36 @@ const PropertyDetails = () => {
   // --------------------------------------------------
   // VIEWING FEE FROM MONGODB
   // --------------------------------------------------
-  const propertyViewingFee = Number(property?.viewingFee || 0);
+
+  const propertyViewingFee = Number(
+    property?.viewingFee || 0
+  );
 
   // --------------------------------------------------
   // INITIATE M-PESA PAYMENT
   // --------------------------------------------------
+
   const initiatePayment = async (e) => {
     e.preventDefault();
 
     if (!phoneNumber.trim()) {
-      setPaymentError("Please enter your M-Pesa phone number.");
+      setPaymentError(
+        "Please enter your M-Pesa phone number."
+      );
       return;
     }
 
     if (!property?._id) {
-      setPaymentError("Property information is not available.");
+      setPaymentError(
+        "Property information is not available."
+      );
       return;
     }
 
     if (!propertyViewingFee || propertyViewingFee <= 0) {
-      setPaymentError("Viewing fee is not available for this property.");
+      setPaymentError(
+        "Viewing fee is not available for this property."
+      );
       return;
     }
 
@@ -105,45 +131,72 @@ const PropertyDetails = () => {
       setPaymentLoading(true);
       setPaymentError("");
       setPaymentStatus(null);
+      setUnlocked(false);
+      unlockingRef.current = false;
 
-      console.log("Initiating payment...");
+      console.log("=================================");
+      console.log("INITIATING PAYMENT");
       console.log("Property ID:", property._id);
-      console.log("Viewing fee:", propertyViewingFee);
+      console.log("Viewing Fee:", propertyViewingFee);
+      console.log("Phone:", phoneNumber.trim());
+      console.log("=================================");
 
-      const response = await fetch(`${API_URL}/api/payments/initiate`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          propertyId: property._id,
-          phoneNumber: phoneNumber.trim(),
-        }),
-      });
+      const response = await fetch(
+        `${API_URL}/api/payments/initiate`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            propertyId: property._id,
+            phoneNumber: phoneNumber.trim(),
+          }),
+        }
+      );
 
       const data = await response.json();
 
-      console.log("Payment initiation response:", data);
+      console.log(
+        "Payment initiation response:",
+        data
+      );
 
       if (!response.ok || !data.success) {
         throw new Error(
-          data.message || "Failed to initiate M-Pesa payment."
+          data.message ||
+            "Failed to initiate M-Pesa payment."
         );
       }
 
       setPaymentId(data.paymentId);
-      setPaymentStatus(data.status || "pending");
 
-      console.log("Payment initiated successfully.");
+      // Payment has been created but is not completed yet
+      setPaymentStatus(
+        data.status || "pending"
+      );
+
+      console.log("=================================");
+      console.log("PAYMENT INITIATED");
       console.log("Payment ID:", data.paymentId);
-      console.log("Payment amount:", data.amount);
-      console.log("Checkout Request ID:", data.checkoutRequestId);
+      console.log("Amount:", data.amount);
+      console.log(
+        "Checkout Request ID:",
+        data.checkoutRequestId
+      );
+      console.log("Status:", data.status);
+      console.log("=================================");
     } catch (err) {
-      console.error("Payment initiation error:", err);
+      console.error(
+        "Payment initiation error:",
+        err
+      );
 
       setPaymentError(
-        err.message || "Failed to initiate M-Pesa payment."
+        err.message ||
+          "Failed to initiate M-Pesa payment."
       );
+
       setPaymentStatus("failed");
     } finally {
       setPaymentLoading(false);
@@ -151,41 +204,82 @@ const PropertyDetails = () => {
   };
 
   // --------------------------------------------------
-  // UNLOCK PROPERTY AFTER SUCCESSFUL PAYMENT
+  // UNLOCK PROPERTY
   // --------------------------------------------------
-  const unlockProperty = async (completedPaymentId) => {
+
+  const unlockProperty = async (
+    completedPaymentId
+  ) => {
     if (!completedPaymentId || !id) {
-      console.error("Missing payment ID or property ID.");
+      console.error(
+        "Missing payment ID or property ID."
+      );
+
       return false;
     }
+
+    // Prevent duplicate unlock requests
+    if (unlockingRef.current) {
+      console.log(
+        "Unlock request already in progress."
+      );
+
+      return false;
+    }
+
+    unlockingRef.current = true;
 
     try {
       setUnlockLoading(true);
       setPaymentError("");
 
-      const unlockUrl = `${API_URL}/api/properties/${id}/unlocked?paymentId=${completedPaymentId}`;
+      const unlockUrl =
+        `${API_URL}/api/properties/${id}/unlocked` +
+        `?paymentId=${encodeURIComponent(
+          completedPaymentId
+        )}`;
 
       console.log("=================================");
       console.log("UNLOCKING PROPERTY");
       console.log("Property ID:", id);
-      console.log("Payment ID:", completedPaymentId);
+      console.log(
+        "Payment ID:",
+        completedPaymentId
+      );
       console.log("Unlock URL:", unlockUrl);
+      console.log("=================================");
 
-      const response = await fetch(unlockUrl);
-
-      console.log("Unlock response status:", response.status);
+      const response = await fetch(
+        unlockUrl,
+        {
+          method: "GET",
+          headers: {
+            Accept: "application/json",
+          },
+        }
+      );
 
       const data = await response.json();
 
-      console.log("Unlock response:", data);
+      console.log(
+        "Unlock response status:",
+        response.status
+      );
+
+      console.log(
+        "Unlock response:",
+        data
+      );
 
       if (!response.ok || !data.success) {
         throw new Error(
-          data.message || "Unable to unlock property details."
+          data.message ||
+            "Unable to unlock property details."
         );
       }
 
-      const protectedDetails = data.protectedDetails;
+      const protectedDetails =
+        data.protectedDetails;
 
       if (!protectedDetails) {
         throw new Error(
@@ -193,9 +287,10 @@ const PropertyDetails = () => {
         );
       }
 
-      console.log("Protected details received:", protectedDetails);
+      // ------------------------------------------------
+      // MERGE PROTECTED DATA
+      // ------------------------------------------------
 
-      // Merge protected details into the existing property
       setProperty((currentProperty) => ({
         ...currentProperty,
 
@@ -240,15 +335,26 @@ const PropertyDetails = () => {
           null,
       }));
 
+      // ------------------------------------------------
+      // IMPORTANT:
+      // Mark unlocked immediately
+      // ------------------------------------------------
+
       setUnlocked(true);
+      setPaymentStatus("completed");
 
       console.log("=================================");
-      console.log("PROPERTY UNLOCKED SUCCESSFULLY");
+      console.log(
+        "PROPERTY UNLOCKED SUCCESSFULLY"
+      );
       console.log("=================================");
 
       return true;
     } catch (err) {
-      console.error("Property unlock error:", err);
+      console.error(
+        "Property unlock error:",
+        err
+      );
 
       setPaymentError(
         err.message ||
@@ -258,115 +364,193 @@ const PropertyDetails = () => {
       return false;
     } finally {
       setUnlockLoading(false);
+      unlockingRef.current = false;
     }
   };
 
   // --------------------------------------------------
-  // CHECK M-PESA PAYMENT STATUS
+  // PAYMENT STATUS POLLING
   // --------------------------------------------------
-  useEffect(() => {
-    if (!paymentId) return;
 
-    let interval = null;
-    let stopped = false;
+  useEffect(() => {
+    if (!paymentId) {
+      return;
+    }
+
+    let cancelled = false;
+    let timeoutId = null;
 
     const checkStatus = async () => {
+      if (cancelled) {
+        return;
+      }
+
       try {
-        const statusUrl = `${API_URL}/api/payments/status/${paymentId}`;
+        const statusUrl =
+          `${API_URL}/api/payments/status/${paymentId}`;
 
-        console.log("Checking payment status...");
-        console.log("Payment status URL:", statusUrl);
+        console.log(
+          "Checking payment status..."
+        );
 
-        const response = await fetch(statusUrl);
+        const response = await fetch(
+          statusUrl,
+          {
+            method: "GET",
+            headers: {
+              Accept: "application/json",
+            },
+            cache: "no-store",
+          }
+        );
 
         const data = await response.json();
 
-        console.log("Payment status response:", data);
+        if (cancelled) {
+          return;
+        }
+
+        console.log(
+          "Payment status response:",
+          data
+        );
 
         if (!response.ok || !data.success) {
           throw new Error(
-            data.message || "Failed to check payment status."
+            data.message ||
+              "Failed to check payment status."
           );
         }
 
-        const status = data.payment?.status;
+        const status =
+          data.payment?.status;
 
-        console.log("Current payment status:", status);
+        console.log(
+          "Current payment status:",
+          status
+        );
 
-        if (stopped) return;
+        if (!status) {
+          scheduleNextCheck();
+          return;
+        }
 
         setPaymentStatus(status);
 
-        // ---------------------------------------------
+        // ==================================================
         // PAYMENT COMPLETED
-        // ---------------------------------------------
+        // ==================================================
+
         if (status === "completed") {
-          console.log("Payment completed.");
+          console.log(
+            "Payment completed!"
+          );
 
-          // Stop polling immediately
-          if (interval) {
-            clearInterval(interval);
-            interval = null;
-          }
+          // IMPORTANT:
+          // Do NOT wait for another polling cycle.
+          // Unlock immediately.
 
-          if (stopped) return;
+          if (!unlockingRef.current) {
+            const success =
+              await unlockProperty(
+                paymentId
+              );
 
-          // Unlock the property
-          const unlockedSuccessfully = await unlockProperty(paymentId);
+            if (
+              success &&
+              !cancelled
+            ) {
+              console.log(
+                "Unlock finished."
+              );
 
-          if (unlockedSuccessfully) {
-            console.log("Unlock completed successfully.");
-
-            // Give user time to see success message
-            setTimeout(() => {
+              // Close immediately after successful unlock
               setShowPaymentModal(false);
-            }, 1500);
+            }
           }
 
           return;
         }
 
-        // ---------------------------------------------
+        // ==================================================
         // PAYMENT FAILED
-        // ---------------------------------------------
-        if (status === "failed") {
-          console.log("Payment failed.");
+        // ==================================================
 
-          if (interval) {
-            clearInterval(interval);
-            interval = null;
-          }
+        if (status === "failed") {
+          console.log(
+            "Payment failed."
+          );
 
           setPaymentError(
-            data.payment?.resultDescription ||
+            data.payment
+              ?.resultDescription ||
+              data.payment
+                ?.resultDesc ||
               "Payment failed or was cancelled."
           );
 
           return;
         }
-      } catch (err) {
-        console.error("Payment status error:", err);
 
-        if (!stopped) {
-          setPaymentError(
-            err.message || "Unable to check payment status."
+        // ==================================================
+        // PAYMENT STILL PENDING
+        // ==================================================
+
+        if (status === "pending") {
+          console.log(
+            "Payment still pending..."
           );
+
+          scheduleNextCheck();
+        }
+      } catch (err) {
+        console.error(
+          "Payment status error:",
+          err
+        );
+
+        if (!cancelled) {
+          console.log(
+            "Status check failed. Retrying..."
+          );
+
+          scheduleNextCheck();
         }
       }
     };
 
-    // Check immediately
+    // --------------------------------------------------
+    // NEXT POLL
+    // --------------------------------------------------
+
+    function scheduleNextCheck() {
+      if (cancelled) {
+        return;
+      }
+
+      // Poll every 2 seconds instead of 3
+      timeoutId = setTimeout(
+        checkStatus,
+        2000
+      );
+    }
+
+    // --------------------------------------------------
+    // FIRST CHECK
+    // --------------------------------------------------
+
     checkStatus();
 
-    // Continue checking every 3 seconds
-    interval = setInterval(checkStatus, 3000);
+    // --------------------------------------------------
+    // CLEANUP
+    // --------------------------------------------------
 
     return () => {
-      stopped = true;
+      cancelled = true;
 
-      if (interval) {
-        clearInterval(interval);
-        interval = null;
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
       }
     };
   }, [paymentId]);
@@ -374,19 +558,26 @@ const PropertyDetails = () => {
   // --------------------------------------------------
   // OPEN PAYMENT MODAL
   // --------------------------------------------------
+
   const openPaymentModal = () => {
     setPaymentError("");
     setPaymentStatus(null);
     setPaymentId(null);
     setPhoneNumber("");
+    setUnlockLoading(false);
+    unlockingRef.current = false;
     setShowPaymentModal(true);
   };
 
   // --------------------------------------------------
   // CLOSE PAYMENT MODAL
   // --------------------------------------------------
+
   const closePaymentModal = () => {
-    if (paymentLoading || unlockLoading) {
+    if (
+      paymentLoading ||
+      unlockLoading
+    ) {
       return;
     }
 
@@ -397,6 +588,7 @@ const PropertyDetails = () => {
   // --------------------------------------------------
   // LOADING STATE
   // --------------------------------------------------
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-950 flex items-center justify-center">
@@ -414,12 +606,14 @@ const PropertyDetails = () => {
   // --------------------------------------------------
   // ERROR STATE
   // --------------------------------------------------
+
   if (error || !property) {
     return (
       <div className="min-h-screen bg-gray-950 flex items-center justify-center px-4">
         <div className="text-center">
           <p className="text-red-400 mb-5">
-            {error || "Property not found."}
+            {error ||
+              "Property not found."}
           </p>
 
           <Link
@@ -437,6 +631,7 @@ const PropertyDetails = () => {
   // --------------------------------------------------
   // PROPERTY DATA
   // --------------------------------------------------
+
   const {
     title,
     propertyType,
@@ -462,9 +657,11 @@ const PropertyDetails = () => {
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
+
       {/* --------------------------------------------- */}
       {/* HEADER */}
       {/* --------------------------------------------- */}
+
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
         <Link
           to="/rentals#property-results"
@@ -478,15 +675,16 @@ const PropertyDetails = () => {
       {/* --------------------------------------------- */}
       {/* MAIN CONTENT */}
       {/* --------------------------------------------- */}
+
       <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
+
         {/* Main Image */}
+
         <div className="relative rounded-2xl overflow-hidden bg-gray-900 mb-8">
           <img
             src={
               images?.[0]
-                ? images[0].startsWith("http")
-                  ? images[0]
-                  : images[0]
+                ? images[0]
                 : "/images/placeholder.jpg"
             }
             alt={title}
@@ -494,6 +692,7 @@ const PropertyDetails = () => {
           />
 
           <div className="absolute top-4 left-4 flex gap-2 flex-wrap">
+
             <span className="bg-blue-600 text-white px-3 py-1.5 rounded-full text-sm font-medium">
               {propertyType}
             </span>
@@ -511,15 +710,20 @@ const PropertyDetails = () => {
                   : "bg-red-600 text-white"
               }`}
             >
-              {available ? "Available" : "Not Available"}
+              {available
+                ? "Available"
+                : "Not Available"}
             </span>
+
           </div>
         </div>
 
         {/* --------------------------------------------- */}
         {/* TITLE + LOCATION */}
         {/* --------------------------------------------- */}
+
         <div className="mb-8">
+
           <h1 className="text-3xl sm:text-4xl font-bold mb-3">
             {title}
           </h1>
@@ -528,17 +732,21 @@ const PropertyDetails = () => {
             <FaMapMarkerAlt className="text-blue-400" />
             <span>{location}</span>
           </div>
+
         </div>
 
         {/* --------------------------------------------- */}
         {/* PROPERTY INFO */}
         {/* --------------------------------------------- */}
+
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-10">
+
           <div className="bg-gray-900 rounded-xl p-5">
             <div className="flex items-center gap-3 mb-2">
               <span className="text-blue-400">
                 <FaBed />
               </span>
+
               <span className="text-gray-400 text-sm">
                 Bedrooms
               </span>
@@ -554,6 +762,7 @@ const PropertyDetails = () => {
               <span className="text-blue-400">
                 <FaBath />
               </span>
+
               <span className="text-gray-400 text-sm">
                 Bathrooms
               </span>
@@ -569,13 +778,16 @@ const PropertyDetails = () => {
               <span className="text-blue-400">
                 <FaRulerCombined />
               </span>
+
               <span className="text-gray-400 text-sm">
                 Area
               </span>
             </div>
 
             <p className="text-xl font-semibold">
-              {area ? `${area} sq ft` : "N/A"}
+              {area
+                ? `${area} sq ft`
+                : "N/A"}
             </p>
           </div>
 
@@ -584,24 +796,33 @@ const PropertyDetails = () => {
               <span className="text-blue-400">
                 <FaCheckCircle />
               </span>
+
               <span className="text-gray-400 text-sm">
                 Furnished
               </span>
             </div>
 
             <p className="text-xl font-semibold">
-              {furnished ? "Yes" : "No"}
+              {furnished
+                ? "Yes"
+                : "No"}
             </p>
           </div>
+
         </div>
 
         {/* --------------------------------------------- */}
         {/* PRICE + VIEWING FEE */}
         {/* --------------------------------------------- */}
+
         <div className="grid lg:grid-cols-3 gap-8">
+
           <div className="lg:col-span-2">
+
             {/* Description */}
+
             <section className="mb-10">
+
               <h2 className="text-2xl font-bold mb-4">
                 Property Description
               </h2>
@@ -610,25 +831,34 @@ const PropertyDetails = () => {
                 {description ||
                   "No description available for this property."}
               </p>
+
             </section>
 
             {/* Amenities */}
+
             {amenities.length > 0 && (
               <section className="mb-10">
+
                 <h2 className="text-2xl font-bold mb-5">
                   Amenities
                 </h2>
 
                 <div className="grid sm:grid-cols-2 gap-3">
-                  {amenities.map((amenity, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center gap-3 text-gray-300"
-                    >
-                      <FaCheckCircle className="text-blue-400" />
-                      <span>{amenity}</span>
-                    </div>
-                  ))}
+
+                  {amenities.map(
+                    (amenity, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center gap-3 text-gray-300"
+                      >
+                        <FaCheckCircle className="text-blue-400" />
+                        <span>
+                          {amenity}
+                        </span>
+                      </div>
+                    )
+                  )}
+
                 </div>
               </section>
             )}
@@ -636,8 +866,11 @@ const PropertyDetails = () => {
             {/* ----------------------------------------- */}
             {/* PROTECTED INFORMATION */}
             {/* ----------------------------------------- */}
+
             <section className="bg-gray-900 rounded-2xl p-6 sm:p-8">
+
               <div className="flex items-center justify-between mb-6">
+
                 <h2 className="text-2xl font-bold">
                   Contact & Viewing Information
                 </h2>
@@ -645,10 +878,12 @@ const PropertyDetails = () => {
                 {!unlocked && (
                   <FaLock className="text-gray-500 text-xl" />
                 )}
+
               </div>
 
               {!unlocked ? (
                 <div className="text-center py-6">
+
                   <FaLock className="text-4xl text-gray-600 mx-auto mb-4" />
 
                   <h3 className="text-xl font-semibold mb-2">
@@ -656,31 +891,40 @@ const PropertyDetails = () => {
                   </h3>
 
                   <p className="text-gray-400 mb-6">
-                    Pay the viewing fee to unlock the landlord,
-                    caretaker, location, map, photos and videos.
+                    Pay the viewing fee to unlock the
+                    landlord, caretaker, location, map,
+                    photos and videos.
                   </p>
 
                   <button
                     onClick={openPaymentModal}
-                    disabled={propertyViewingFee <= 0}
+                    disabled={
+                      propertyViewingFee <= 0
+                    }
                     className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 disabled:cursor-not-allowed text-white font-semibold px-6 py-3 rounded-lg transition"
                   >
                     {propertyViewingFee > 0
                       ? `Pay KSh ${propertyViewingFee.toLocaleString()} Viewing Fee`
                       : "Viewing Fee Not Available"}
                   </button>
+
                 </div>
               ) : (
                 <div className="space-y-6">
+
                   {/* Landlord */}
+
                   {landlordName && (
                     <div>
+
                       <div className="flex items-center gap-3 mb-3">
+
                         <FaUser className="text-blue-400" />
 
                         <h3 className="font-semibold">
                           Landlord
                         </h3>
+
                       </div>
 
                       <p className="text-gray-300">
@@ -705,18 +949,23 @@ const PropertyDetails = () => {
                           {landlordEmail}
                         </a>
                       )}
+
                     </div>
                   )}
 
                   {/* Caretaker */}
+
                   {caretakerName && (
                     <div>
+
                       <div className="flex items-center gap-3 mb-3">
+
                         <FaUser className="text-blue-400" />
 
                         <h3 className="font-semibold">
                           Caretaker
                         </h3>
+
                       </div>
 
                       <p className="text-gray-300">
@@ -732,12 +981,15 @@ const PropertyDetails = () => {
                           {caretakerPhone}
                         </a>
                       )}
+
                     </div>
                   )}
 
                   {/* Map */}
+
                   {mapUrl && (
                     <div>
+
                       <h3 className="font-semibold mb-3">
                         Exact Location
                       </h3>
@@ -751,100 +1003,134 @@ const PropertyDetails = () => {
                         <FaMapMarkerAlt />
                         Open Location Map
                       </a>
+
                     </div>
                   )}
+
                 </div>
               )}
+
             </section>
 
             {/* ----------------------------------------- */}
             {/* MORE PHOTOS */}
             {/* ----------------------------------------- */}
+
             <section className="mt-10">
+
               <h2 className="text-2xl font-bold mb-5">
                 More Photos
               </h2>
 
               {!unlocked ? (
                 <div className="bg-gray-900 rounded-xl p-8 text-center">
+
                   <FaLock className="text-3xl text-gray-600 mx-auto mb-3" />
 
                   <p className="text-gray-400">
-                    Additional property photos are available after
-                    payment.
+                    Additional property photos are
+                    available after payment.
                   </p>
+
                 </div>
               ) : images.length > 1 ? (
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                  {images.slice(1).map((image, index) => (
-                    <img
-                      key={index}
-                      src={image}
-                      alt={`${title} ${index + 2}`}
-                      className="w-full h-48 object-cover rounded-xl"
-                    />
-                  ))}
+
+                  {images
+                    .slice(1)
+                    .map(
+                      (image, index) => (
+                        <img
+                          key={index}
+                          src={image}
+                          alt={`${title} ${index + 2}`}
+                          className="w-full h-48 object-cover rounded-xl"
+                        />
+                      )
+                    )}
+
                 </div>
               ) : (
                 <p className="text-gray-400">
                   No additional photos available.
                 </p>
               )}
+
             </section>
 
             {/* ----------------------------------------- */}
             {/* VIDEOS */}
             {/* ----------------------------------------- */}
+
             <section className="mt-10">
+
               <div className="flex items-center gap-3 mb-5">
+
                 <FaVideo className="text-blue-400" />
 
                 <h2 className="text-2xl font-bold">
                   Property Videos
                 </h2>
+
               </div>
 
               {!unlocked ? (
                 <div className="bg-gray-900 rounded-xl p-8 text-center">
+
                   <FaLock className="text-3xl text-gray-600 mx-auto mb-3" />
 
                   <p className="text-gray-400">
-                    Property videos are available after payment.
+                    Property videos are available after
+                    payment.
                   </p>
+
                 </div>
               ) : videos.length > 0 ? (
                 <div className="space-y-5">
-                  {videos.map((video, index) => (
-                    <video
-                      key={index}
-                      src={video}
-                      controls
-                      className="w-full rounded-xl bg-black"
-                    />
-                  ))}
+
+                  {videos.map(
+                    (video, index) => (
+                      <video
+                        key={index}
+                        src={video}
+                        controls
+                        className="w-full rounded-xl bg-black"
+                      />
+                    )
+                  )}
+
                 </div>
               ) : (
                 <p className="text-gray-400">
                   No videos available for this property.
                 </p>
               )}
+
             </section>
+
           </div>
 
           {/* ------------------------------------------- */}
           {/* SIDEBAR */}
           {/* ------------------------------------------- */}
+
           <aside>
+
             <div className="bg-gray-900 rounded-2xl p-6 sticky top-24">
+
               <p className="text-gray-400 text-sm mb-1">
                 Monthly Rent
               </p>
 
               <p className="text-3xl font-bold text-blue-400 mb-6">
-                KSh {Number(price || 0).toLocaleString()}
+                KSh{" "}
+                {Number(
+                  price || 0
+                ).toLocaleString()}
               </p>
 
               <div className="border-t border-gray-800 pt-5 mb-6">
+
                 <p className="text-gray-400 text-sm mb-1">
                   Viewing Fee
                 </p>
@@ -854,12 +1140,15 @@ const PropertyDetails = () => {
                     ? `KSh ${propertyViewingFee.toLocaleString()}`
                     : "Not Available"}
                 </p>
+
               </div>
 
               {!unlocked && (
                 <button
                   onClick={openPaymentModal}
-                  disabled={propertyViewingFee <= 0}
+                  disabled={
+                    propertyViewingFee <= 0
+                  }
                   className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 disabled:cursor-not-allowed text-white font-semibold py-3 px-5 rounded-lg transition"
                 >
                   {propertyViewingFee > 0
@@ -874,31 +1163,45 @@ const PropertyDetails = () => {
                   Property Details Unlocked
                 </div>
               )}
+
             </div>
+
           </aside>
+
         </div>
       </main>
 
       {/* ================================================= */}
       {/* PAYMENT MODAL */}
       {/* ================================================= */}
+
       {showPaymentModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
+
           <div className="relative w-full max-w-md bg-gray-900 rounded-2xl shadow-2xl p-6 sm:p-8">
+
             {/* Close */}
+
             <button
               onClick={closePaymentModal}
-              disabled={paymentLoading || unlockLoading}
+              disabled={
+                paymentLoading ||
+                unlockLoading
+              }
               className="absolute top-4 right-4 text-gray-400 hover:text-white disabled:opacity-50"
             >
               <FaTimes />
             </button>
 
-            {/* ----------------------------------------- */}
+            {/* ========================================= */}
             {/* SUCCESS */}
-            {/* ----------------------------------------- */}
-            {paymentStatus === "completed" && unlocked ? (
+            {/* ========================================= */}
+
+            {paymentStatus ===
+              "completed" &&
+            unlocked ? (
               <div className="text-center py-6">
+
                 <FaCheckCircle className="text-5xl text-green-500 mx-auto mb-5" />
 
                 <h2 className="text-2xl font-bold mb-3">
@@ -906,15 +1209,20 @@ const PropertyDetails = () => {
                 </h2>
 
                 <p className="text-gray-400">
-                  Your property viewing details have been
-                  unlocked successfully.
+                  Your property viewing details have
+                  been unlocked successfully.
                 </p>
+
               </div>
+
             ) : unlockLoading ? (
-              /* ----------------------------------------- */
+
+              /* ======================================= */
               /* UNLOCKING */
-              /* ----------------------------------------- */
+              /* ======================================= */
+
               <div className="text-center py-8">
+
                 <div className="w-12 h-12 border-4 border-gray-700 border-t-blue-500 rounded-full animate-spin mx-auto mb-5"></div>
 
                 <h2 className="text-xl font-bold mb-2">
@@ -922,15 +1230,21 @@ const PropertyDetails = () => {
                 </h2>
 
                 <p className="text-gray-400">
-                  Your payment has been received. Please wait while
-                  we unlock the property information.
+                  Payment received. Unlocking your
+                  property information...
                 </p>
+
               </div>
-            ) : paymentStatus === "pending" ? (
-              /* ----------------------------------------- */
+
+            ) : paymentStatus ===
+              "pending" ? (
+
+              /* ======================================= */
               /* PAYMENT PENDING */
-              /* ----------------------------------------- */
+              /* ======================================= */
+
               <div className="text-center py-6">
+
                 <FaMobileAlt className="text-5xl text-blue-400 mx-auto mb-5" />
 
                 <h2 className="text-2xl font-bold mb-3">
@@ -938,11 +1252,12 @@ const PropertyDetails = () => {
                 </h2>
 
                 <p className="text-gray-400 mb-5">
-                  Check your phone and complete the M-Pesa payment
-                  request.
+                  Check your phone and complete the
+                  M-Pesa payment request.
                 </p>
 
                 <div className="bg-gray-800 rounded-lg p-4">
+
                   <p className="text-gray-400 text-sm">
                     Viewing Fee
                   </p>
@@ -951,18 +1266,27 @@ const PropertyDetails = () => {
                     KSh{" "}
                     {propertyViewingFee.toLocaleString()}
                   </p>
+
                 </div>
 
                 <div className="mt-5 flex justify-center">
+
                   <div className="w-8 h-8 border-4 border-gray-700 border-t-blue-500 rounded-full animate-spin"></div>
+
                 </div>
+
               </div>
+
             ) : (
-              /* ----------------------------------------- */
+
+              /* ======================================= */
               /* PAYMENT FORM */
-              /* ----------------------------------------- */
+              /* ======================================= */
+
               <>
+
                 <div className="text-center mb-7">
+
                   <FaMobileAlt className="text-4xl text-blue-400 mx-auto mb-4" />
 
                   <h2 className="text-2xl font-bold mb-2">
@@ -970,13 +1294,16 @@ const PropertyDetails = () => {
                   </h2>
 
                   <p className="text-gray-400">
-                    Enter your M-Pesa number to receive the payment
-                    prompt.
+                    Enter your M-Pesa number to receive
+                    the payment prompt.
                   </p>
+
                 </div>
 
                 {/* Viewing Fee */}
+
                 <div className="bg-gray-800 rounded-xl p-4 mb-6 text-center">
+
                   <p className="text-gray-400 text-sm">
                     Property Viewing Fee
                   </p>
@@ -985,9 +1312,11 @@ const PropertyDetails = () => {
                     KSh{" "}
                     {propertyViewingFee.toLocaleString()}
                   </p>
+
                 </div>
 
                 <form onSubmit={initiatePayment}>
+
                   <label className="block text-sm font-medium text-gray-300 mb-2">
                     M-Pesa Phone Number
                   </label>
@@ -996,7 +1325,9 @@ const PropertyDetails = () => {
                     type="tel"
                     value={phoneNumber}
                     onChange={(e) =>
-                      setPhoneNumber(e.target.value)
+                      setPhoneNumber(
+                        e.target.value
+                      )
                     }
                     placeholder="e.g. 0712345678"
                     className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 mb-4"
@@ -1021,10 +1352,14 @@ const PropertyDetails = () => {
                       ? "Sending M-Pesa Request..."
                       : `Pay KSh ${propertyViewingFee.toLocaleString()}`}
                   </button>
+
                 </form>
+
               </>
             )}
+
           </div>
+
         </div>
       )}
     </div>
