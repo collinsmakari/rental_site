@@ -131,8 +131,8 @@ const WhatsAppButton = () => {
         fixed
         z-[9999]
         flex
-        h-14
-        w-14
+        h-10
+        w-10
         cursor-grab
         touch-none
         select-none

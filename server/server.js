@@ -3,6 +3,7 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import paymentRoutes from "./routes/paymentRoutes.js";
+import adminRoutes from "./routes/adminRoutes.js";
 
 import connectDB from "./config/db.js";
 import propertyRoutes from "./routes/propertyRoutes.js";
@@ -25,6 +26,7 @@ app.use(express.json());
 // API routes
 app.use("/api/properties", propertyRoutes);
 app.use("/api/payments", paymentRoutes);
+app.use("/api/admin", adminRoutes);
 
 // Root route
 app.get("/", (req, res) => {

@@ -9,14 +9,21 @@ import {
   deleteProperty,
 } from "../controllers/propertyController.js";
 
+import upload from "../middleware/uploadMiddleware.js";
+
 const router = express.Router();
 
 // ==========================================
 // CREATE PROPERTY
+// LANDLORD / CARETAKER SUBMISSION
 // ==========================================
 
 router.post(
   "/",
+  upload.fields([
+    { name: "images", maxCount: 10 },
+    { name: "videos", maxCount: 5 },
+  ]),
   createProperty
 );
 

@@ -27,6 +27,7 @@ const propertySchema = new mongoose.Schema(
     area: {
       type: Number,
       required: true,
+      min: 0,
     },
 
     propertyType: {
@@ -39,33 +40,46 @@ const propertySchema = new mongoose.Schema(
         "Studio",
         "Maisonette",
         "Commercial",
+        "Office",
         "AirBnB",
       ],
+      trim: true,
     },
 
     monthlyrent: {
       type: Number,
       required: true,
+      min: 0,
     },
+
     deposit: {
       type: Number,
       required: true,
+      min: 0,
     },
 
+    // ==========================================
+    // VIEWING FEE
+    // ==========================================
+
+    // This value is determined by the backend
+    // according to propertyType.
     viewingFee: {
-  type: Number,
-  required: true,
-  min: 1,
-},
+      type: Number,
+      required: true,
+      min: 1,
+    },
 
     bedrooms: {
       type: Number,
       default: 0,
+      min: 0,
     },
 
     bathrooms: {
       type: Number,
       default: 0,
+      min: 0,
     },
 
     furnished: {
@@ -83,7 +97,7 @@ const propertySchema = new mongoose.Schema(
       default: [],
     },
 
-    // Main/public image
+    // Main/public images
     images: {
       type: [String],
       default: [],
@@ -101,31 +115,38 @@ const propertySchema = new mongoose.Schema(
     mapUrl: {
       type: String,
       default: "",
+      trim: true,
     },
 
     landlordName: {
       type: String,
       default: "",
+      trim: true,
     },
 
     landlordPhone: {
       type: String,
       default: "",
+      trim: true,
     },
 
     landlordEmail: {
       type: String,
       default: "",
+      trim: true,
+      lowercase: true,
     },
 
     caretakerName: {
       type: String,
       default: "",
+      trim: true,
     },
 
     caretakerPhone: {
       type: String,
       default: "",
+      trim: true,
     },
 
     // ==========================================
@@ -135,6 +156,17 @@ const propertySchema = new mongoose.Schema(
     available: {
       type: Boolean,
       default: true,
+    },
+
+    // ==========================================
+    // APPROVAL STATUS
+    // ==========================================
+
+    status: {
+      type: String,
+      enum: ["pending", "approved", "rejected"],
+      default: "pending",
+      index: true,
     },
   },
   {

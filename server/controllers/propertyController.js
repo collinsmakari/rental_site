@@ -1,17 +1,202 @@
 import Property from "../models/Property.js";
 import Payment from "../models/Payment.js";
+import viewingFees from "../config/viewingFees.js";
+
+import {
+  uploadPropertyImage,
+  uploadPropertyVideo,
+} from "../services/cloudinaryService.js";
 
 // ==========================================
 // CREATE PROPERTY
+// LANDLORD / CARETAKER SUBMISSION
 // ==========================================
 
 export const createProperty = async (req, res) => {
   try {
-    const property = await Property.create(req.body);
+    const {
+      title,
+      description,
+      location,
+      area,
+      propertyType,
+      monthlyrent,
+      deposit,
+      bedrooms,
+      bathrooms,
+      furnished,
+      featured,
+      amenities,
+      mapUrl,
+      landlordName,
+      landlordPhone,
+      landlordEmail,
+      caretakerName,
+      caretakerPhone,
+      available,
+    } = req.body;
+
+    // ------------------------------------------
+    // Validate property type
+    // ------------------------------------------
+
+    if (!propertyType) {
+      return res.status(400).json({
+        success: false,
+        message: "Property type is required",
+      });
+    }
+
+    // ------------------------------------------
+    // Automatically determine viewing fee
+    // ------------------------------------------
+
+    const viewingFee = viewingFees[propertyType];
+
+    if (!viewingFee) {
+      return res.status(400).json({
+        success: false,
+        message: `No viewing fee configured for property type: ${propertyType}`,
+      });
+    }
+
+    // ------------------------------------------
+    // Get uploaded files
+    // ------------------------------------------
+
+    const imageFiles = req.files?.images || [];
+    const videoFiles = req.files?.videos || [];
+
+    // ------------------------------------------
+    // Require at least one image
+    // ------------------------------------------
+
+    if (imageFiles.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Please upload at least one property image",
+      });
+    }
+
+    console.log("=================================");
+    console.log("========== CREATE PROPERTY ==========");
+    console.log("Property Type:", propertyType);
+    console.log("Images:", imageFiles.length);
+    console.log("Videos:", videoFiles.length);
+    console.log("Viewing Fee:", viewingFee);
+    console.log("=================================");
+
+    // ------------------------------------------
+    // Upload images to Cloudinary
+    // ------------------------------------------
+
+    const imageUrls = [];
+
+    for (const file of imageFiles) {
+      const result = await uploadPropertyImage(file.buffer);
+
+      if (result?.secure_url) {
+        imageUrls.push(result.secure_url);
+      }
+    }
+
+    // ------------------------------------------
+    // Upload videos to Cloudinary
+    // ------------------------------------------
+
+    const videoUrls = [];
+
+    for (const file of videoFiles) {
+      const result = await uploadPropertyVideo(file.buffer);
+
+      if (result?.secure_url) {
+        videoUrls.push(result.secure_url);
+      }
+    }
+
+    // ------------------------------------------
+    // Make sure image upload succeeded
+    // ------------------------------------------
+
+    if (imageUrls.length === 0) {
+      return res.status(500).json({
+        success: false,
+        message: "Property images could not be uploaded",
+      });
+    }
+
+    // ------------------------------------------
+    // Create MongoDB property
+    // ------------------------------------------
+
+    const property = await Property.create({
+      title,
+      description,
+      location,
+      area,
+      propertyType,
+      monthlyrent,
+      deposit,
+
+      // Automatically assigned
+      viewingFee,
+
+      bedrooms,
+      bathrooms,
+
+      furnished:
+        furnished === true ||
+        furnished === "true",
+
+      featured:
+        featured === true ||
+        featured === "true",
+
+      amenities:
+        typeof amenities === "string"
+          ? amenities
+              .split(",")
+              .map((item) => item.trim())
+              .filter(Boolean)
+          : amenities || [],
+
+      // Cloudinary URLs
+      images: imageUrls,
+      videos: videoUrls,
+
+      mapUrl,
+
+      landlordName,
+      landlordPhone,
+      landlordEmail,
+
+      caretakerName,
+      caretakerPhone,
+
+      available:
+        available === undefined
+          ? true
+          : available === true ||
+            available === "true",
+
+      // New properties require admin approval
+      status: "pending",
+    });
+
+    console.log("=================================");
+    console.log("PROPERTY CREATED SUCCESSFULLY");
+    console.log("Property ID:", property._id.toString());
+    console.log("Property Type:", property.propertyType);
+    console.log("Viewing Fee:", property.viewingFee);
+    console.log("Images:", property.images.length);
+    console.log("Videos:", property.videos.length);
+    console.log("Status:", property.status);
+    console.log("=================================");
 
     return res.status(201).json({
       success: true,
-      message: "Property created successfully",
+      message:
+        "Property submitted successfully and is awaiting approval",
       property,
     });
   } catch (error) {
@@ -32,24 +217,21 @@ export const createProperty = async (req, res) => {
 
 export const getProperties = async (req, res) => {
   try {
-    const properties = await Property.find()
+    const properties = await Property.find({
+      status: "approved",
+    })
       .select(
-        "title description location area propertyType price bedrooms bathrooms furnished featured amenities images available createdAt"
+        "title description location area propertyType monthlyrent deposit viewingFee bedrooms bathrooms furnished featured amenities images available createdAt"
       )
       .sort({
         createdAt: -1,
       });
-
-    // ------------------------------------------
-    // Only expose the FIRST image publicly
-    // ------------------------------------------
 
     const publicProperties = properties.map((property) => {
       const propertyObject = property.toObject();
 
       return {
         ...propertyObject,
-
         images: property.images?.length
           ? [property.images[0]]
           : [],
@@ -79,10 +261,11 @@ export const getProperties = async (req, res) => {
 
 export const getPropertyById = async (req, res) => {
   try {
-    const property = await Property.findById(
-      req.params.id
-    ).select(
-      "title description location area propertyType viewingFee price deposit water balcony kitchen floor bedrooms bathrooms furnished featured amenities images available createdAt"
+    const property = await Property.findOne({
+      _id: req.params.id,
+      status: "approved",
+    }).select(
+      "title description location area propertyType monthlyrent deposit viewingFee bedrooms bathrooms furnished featured amenities images available createdAt"
     );
 
     if (!property) {
@@ -94,17 +277,9 @@ export const getPropertyById = async (req, res) => {
 
     const propertyObject = property.toObject();
 
-    // ------------------------------------------
-    // Only expose the main image publicly
-    // ------------------------------------------
-
     propertyObject.images = property.images?.length
       ? [property.images[0]]
       : [];
-
-    // ------------------------------------------
-    // Explicitly remove protected information
-    // ------------------------------------------
 
     delete propertyObject.videos;
     delete propertyObject.mapUrl;
@@ -145,21 +320,12 @@ export const getProtectedProperty = async (
     const propertyId = req.params.id;
     const { paymentId } = req.query;
 
-    // ------------------------------------------
-    // Validate payment ID
-    // ------------------------------------------
-
     if (!paymentId) {
       return res.status(401).json({
         success: false,
         message: "Payment ID is required",
       });
     }
-
-    // ------------------------------------------
-    // Verify completed payment belongs
-    // to this property
-    // ------------------------------------------
 
     const payment = await Payment.findOne({
       _id: paymentId,
@@ -175,13 +341,10 @@ export const getProtectedProperty = async (
       });
     }
 
-    // ------------------------------------------
-    // Find property
-    // ------------------------------------------
-
-    const property = await Property.findById(
-      propertyId
-    );
+    const property = await Property.findOne({
+      _id: propertyId,
+      status: "approved",
+    });
 
     if (!property) {
       return res.status(404).json({
@@ -190,41 +353,21 @@ export const getProtectedProperty = async (
       });
     }
 
-    // ------------------------------------------
-    // Return protected information
-    // ------------------------------------------
-
     return res.status(200).json({
       success: true,
-      message:
-        "Property information unlocked",
+      message: "Property information unlocked",
 
       protectedDetails: {
-        // All images after payment
         images: property.images || [],
-
-        // Videos
         videos: property.videos || [],
-
-        // Map / exact location information
         mapUrl: property.mapUrl,
 
-        // Landlord
-        landlordName:
-          property.landlordName,
+        landlordName: property.landlordName,
+        landlordPhone: property.landlordPhone,
+        landlordEmail: property.landlordEmail,
 
-        landlordPhone:
-          property.landlordPhone,
-
-        landlordEmail:
-          property.landlordEmail,
-
-        // Caretaker
-        caretakerName:
-          property.caretakerName,
-
-        caretakerPhone:
-          property.caretakerPhone,
+        caretakerName: property.caretakerName,
+        caretakerPhone: property.caretakerPhone,
       },
     });
   } catch (error) {
@@ -251,10 +394,37 @@ export const updateProperty = async (
   res
 ) => {
   try {
+    const updates = {
+      ...req.body,
+    };
+
+    // Never allow frontend to manually change
+    // the viewing fee.
+
+    if (updates.propertyType) {
+      const viewingFee =
+        viewingFees[updates.propertyType];
+
+      if (!viewingFee) {
+        return res.status(400).json({
+          success: false,
+          message:
+            `No viewing fee configured for property type: ${updates.propertyType}`,
+        });
+      }
+
+      updates.viewingFee = viewingFee;
+    }
+
+    // Status should be controlled separately
+    // by the admin approval system.
+
+    delete updates.status;
+
     const property =
       await Property.findByIdAndUpdate(
         req.params.id,
-        req.body,
+        updates,
         {
           new: true,
           runValidators: true,

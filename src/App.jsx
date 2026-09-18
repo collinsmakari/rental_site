@@ -6,6 +6,7 @@ import About from "./pages/About";
 import Blog from "./pages/Blog";
 import Contact from "./pages/Contact";
 import Rentals from "./pages/Rentals";
+import ListProperty from "./pages/ListProperty";
 
 function App() {
   return (
@@ -18,6 +19,10 @@ function App() {
 
           <Route path="/blog/understanding-rental-agreements" element={<Blog />} />
           <Route path="/blog" element={<Blog />} />
+          <Route
+  path="/list-property"
+  element={<ListProperty />}
+/>
 <Route
   path="/properties/:id"
   element={<PropertyDetails />}
