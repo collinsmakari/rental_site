@@ -47,7 +47,7 @@ const initialForm = {
   location: "",
   area: "",
   propertyType: "",
-  monthlyrent: "",
+  price: "",
   deposit: "",
   bedrooms: "",
   bathrooms: "",
@@ -180,7 +180,9 @@ const ListProperty = () => {
 
   const removeImage = (index) => {
     setImages((previous) =>
-      previous.filter((_, imageIndex) => imageIndex !== index)
+      previous.filter(
+        (_, imageIndex) => imageIndex !== index
+      )
     );
   };
 
@@ -190,7 +192,9 @@ const ListProperty = () => {
 
   const removeVideo = (index) => {
     setVideos((previous) =>
-      previous.filter((_, videoIndex) => videoIndex !== index)
+      previous.filter(
+        (_, videoIndex) => videoIndex !== index
+      )
     );
   };
 
@@ -227,7 +231,9 @@ const ListProperty = () => {
 
   const removeAmenity = (index) => {
     setAmenities((previous) =>
-      previous.filter((_, amenityIndex) => amenityIndex !== index)
+      previous.filter(
+        (_, amenityIndex) => amenityIndex !== index
+      )
     );
   };
 
@@ -259,11 +265,11 @@ const ListProperty = () => {
       return "Please enter the property location.";
     }
 
-    if (!form.monthlyrent) {
+    if (!form.price) {
       return "Please enter the monthly rent.";
     }
 
-    if (Number(form.monthlyrent) < 0) {
+    if (Number(form.price) < 0) {
       return "Monthly rent cannot be negative.";
     }
 
@@ -343,23 +349,26 @@ const ListProperty = () => {
       // ========================================
 
       formData.append("title", form.title.trim());
+
       formData.append(
         "description",
         form.description.trim()
       );
+
       formData.append(
         "location",
         form.location.trim()
       );
+
       formData.append("area", form.area);
+
       formData.append(
         "propertyType",
         form.propertyType
       );
-      formData.append(
-        "monthlyrent",
-        form.monthlyrent
-      );
+
+      formData.append("price", form.price);
+
       formData.append("deposit", form.deposit);
 
       // ========================================
@@ -463,9 +472,15 @@ const ListProperty = () => {
 
       const data = await response.json();
 
+      console.log(
+        "Create property response:",
+        data
+      );
+
       if (!response.ok) {
         throw new Error(
-          data.message ||
+          data.error ||
+            data.message ||
             "Failed to submit property."
         );
       }
@@ -698,7 +713,7 @@ const ListProperty = () => {
                 </div>
               </div>
 
-              {/* MONTHLY RENT */}
+              {/* PRICE */}
 
               <div>
                 <label className="mb-2 block text-sm font-semibold text-gray-700">
@@ -707,8 +722,8 @@ const ListProperty = () => {
 
                 <input
                   type="number"
-                  name="monthlyrent"
-                  value={form.monthlyrent}
+                  name="price"
+                  value={form.price}
                   onChange={handleChange}
                   min="0"
                   placeholder="35000"

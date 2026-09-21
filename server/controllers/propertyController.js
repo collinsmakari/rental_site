@@ -24,7 +24,7 @@ export const createProperty = async (req, res) => {
       location,
       area,
       propertyType,
-      monthlyrent,
+      price,
       deposit,
       bedrooms,
       bathrooms,
@@ -188,7 +188,7 @@ export const createProperty = async (req, res) => {
       location,
       area,
       propertyType,
-      monthlyrent,
+      price,
       deposit,
 
       // Automatically assigned
@@ -295,7 +295,7 @@ export const getProperties = async (req, res) => {
       status: "approved",
     })
       .select(
-        "title description location area propertyType monthlyrent deposit viewingFee bedrooms bathrooms furnished featured amenities images available createdAt"
+        "title description location area propertyType price deposit viewingFee bedrooms bathrooms furnished featured amenities images available createdAt"
       )
       .sort({
         createdAt: -1,
@@ -339,7 +339,7 @@ export const getPropertyById = async (req, res) => {
       _id: req.params.id,
       status: "approved",
     }).select(
-      "title description location area propertyType monthlyrent deposit viewingFee bedrooms bathrooms furnished featured amenities images available createdAt"
+      "title description location area propertyType price deposit viewingFee bedrooms bathrooms furnished featured amenities images available createdAt"
     );
 
     if (!property) {

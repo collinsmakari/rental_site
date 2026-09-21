@@ -46,7 +46,7 @@ const propertySchema = new mongoose.Schema(
       trim: true,
     },
 
-    monthlyrent: {
+    price: {
       type: Number,
       required: true,
       min: 0,
