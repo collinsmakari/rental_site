@@ -14,6 +14,10 @@ import {
 
 export const createProperty = async (req, res) => {
   try {
+    console.log("=================================");
+    console.log("CREATE PROPERTY REQUEST RECEIVED");
+    console.log("=================================");
+
     const {
       title,
       description,
@@ -36,6 +40,10 @@ export const createProperty = async (req, res) => {
       available,
     } = req.body;
 
+    console.log("Property title:", title);
+    console.log("Property type:", propertyType);
+    console.log("Files received:", req.files);
+
     // ------------------------------------------
     // Validate property type
     // ------------------------------------------
@@ -53,6 +61,8 @@ export const createProperty = async (req, res) => {
 
     const viewingFee = viewingFees[propertyType];
 
+    console.log("Viewing fee:", viewingFee);
+
     if (!viewingFee) {
       return res.status(400).json({
         success: false,
@@ -67,6 +77,9 @@ export const createProperty = async (req, res) => {
     const imageFiles = req.files?.images || [];
     const videoFiles = req.files?.videos || [];
 
+    console.log("Number of images:", imageFiles.length);
+    console.log("Number of videos:", videoFiles.length);
+
     // ------------------------------------------
     // Require at least one image
     // ------------------------------------------
@@ -78,27 +91,43 @@ export const createProperty = async (req, res) => {
       });
     }
 
-    console.log("=================================");
-    console.log("========== CREATE PROPERTY ==========");
-    console.log("Property Type:", propertyType);
-    console.log("Images:", imageFiles.length);
-    console.log("Videos:", videoFiles.length);
-    console.log("Viewing Fee:", viewingFee);
-    console.log("=================================");
-
     // ------------------------------------------
     // Upload images to Cloudinary
     // ------------------------------------------
 
+    console.log("=================================");
+    console.log("STARTING IMAGE UPLOADS");
+    console.log("=================================");
+
     const imageUrls = [];
 
-    for (const file of imageFiles) {
-      const result = await uploadPropertyImage(file.buffer);
+    for (let i = 0; i < imageFiles.length; i++) {
+      const file = imageFiles[i];
+
+      console.log(
+        `Uploading image ${i + 1}/${imageFiles.length}`
+      );
+
+      console.log("Filename:", file.originalname);
+      console.log("Mimetype:", file.mimetype);
+      console.log("Size:", file.size);
+
+      const result = await uploadPropertyImage(
+        file.buffer
+      );
+
+      console.log(
+        `Image ${i + 1} uploaded successfully`
+      );
+
+      console.log("Cloudinary URL:", result?.secure_url);
 
       if (result?.secure_url) {
         imageUrls.push(result.secure_url);
       }
     }
+
+    console.log("Total uploaded images:", imageUrls.length);
 
     // ------------------------------------------
     // Upload videos to Cloudinary
@@ -106,13 +135,33 @@ export const createProperty = async (req, res) => {
 
     const videoUrls = [];
 
-    for (const file of videoFiles) {
-      const result = await uploadPropertyVideo(file.buffer);
+    for (let i = 0; i < videoFiles.length; i++) {
+      const file = videoFiles[i];
+
+      console.log(
+        `Uploading video ${i + 1}/${videoFiles.length}`
+      );
+
+      console.log("Filename:", file.originalname);
+      console.log("Mimetype:", file.mimetype);
+      console.log("Size:", file.size);
+
+      const result = await uploadPropertyVideo(
+        file.buffer
+      );
+
+      console.log(
+        `Video ${i + 1} uploaded successfully`
+      );
+
+      console.log("Cloudinary URL:", result?.secure_url);
 
       if (result?.secure_url) {
         videoUrls.push(result.secure_url);
       }
     }
+
+    console.log("Total uploaded videos:", videoUrls.length);
 
     // ------------------------------------------
     // Make sure image upload succeeded
@@ -128,6 +177,10 @@ export const createProperty = async (req, res) => {
     // ------------------------------------------
     // Create MongoDB property
     // ------------------------------------------
+
+    console.log("=================================");
+    console.log("CREATING PROPERTY IN MONGODB");
+    console.log("=================================");
 
     const property = await Property.create({
       title,
@@ -179,12 +232,17 @@ export const createProperty = async (req, res) => {
           : available === true ||
             available === "true",
 
-      // New properties require admin approval
+      // Requires admin approval
       status: "pending",
     });
 
+    // ------------------------------------------
+    // SUCCESS
+    // ------------------------------------------
+
     console.log("=================================");
     console.log("PROPERTY CREATED SUCCESSFULLY");
+    console.log("=================================");
     console.log("Property ID:", property._id.toString());
     console.log("Property Type:", property.propertyType);
     console.log("Viewing Fee:", property.viewingFee);
@@ -200,12 +258,28 @@ export const createProperty = async (req, res) => {
       property,
     });
   } catch (error) {
-    console.error("Create property error:", error);
+    console.error("=================================");
+    console.error("CREATE PROPERTY FAILED");
+    console.error("=================================");
+    console.error("Error name:", error.name);
+    console.error("Error message:", error.message);
+    console.error("Error stack:", error.stack);
 
-    return res.status(400).json({
+    if (error.response) {
+      console.error(
+        "Error response:",
+        error.response.data
+      );
+    }
+
+    console.error("=================================");
+
+    return res.status(500).json({
       success: false,
       message: "Failed to create property",
-      error: error.message,
+      error:
+        error.message ||
+        "Unknown server error",
     });
   }
 };
