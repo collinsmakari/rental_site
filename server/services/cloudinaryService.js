@@ -1,5 +1,4 @@
 import "dotenv/config";
-
 import { v2 as cloudinary } from "cloudinary";
 
 const getCloudinary = () => {
@@ -53,29 +52,17 @@ const uploadBuffer = (buffer, resourceType, folder) => {
           },
           (error, result) => {
             if (error) {
-              console.error(
-                "================================="
-              );
               console.error("CLOUDINARY UPLOAD ERROR");
               console.error("Message:", error.message);
               console.error("HTTP Code:", error.http_code);
-              console.error(
-                "================================="
-              );
 
               reject(error);
               return;
             }
 
-            console.log(
-              "================================="
-            );
             console.log("CLOUDINARY UPLOAD SUCCESS");
             console.log("Public ID:", result.public_id);
             console.log("URL:", result.secure_url);
-            console.log(
-              "================================="
-            );
 
             resolve(result);
           }
