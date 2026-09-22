@@ -1,4 +1,78 @@
+import jwt from "jsonwebtoken";
 import Property from "../models/Property.js";
+
+/**
+ * Admin login
+ */
+export const adminLogin = async (req, res) => {
+  try {
+    const { username, password } = req.body;
+
+    if (!username || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Username and password are required",
+      });
+    }
+
+    const configuredUsername = process.env.ADMIN_USERNAME;
+    const configuredPassword = process.env.ADMIN_PASSWORD;
+    const jwtSecret = process.env.JWT_SECRET;
+
+    if (
+      !configuredUsername ||
+      !configuredPassword ||
+      !jwtSecret
+    ) {
+      console.error(
+        "Admin authentication environment variables are not configured."
+      );
+
+      return res.status(500).json({
+        success: false,
+        message: "Admin authentication is not configured",
+      });
+    }
+
+    if (
+      username !== configuredUsername ||
+      password !== configuredPassword
+    ) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid admin credentials",
+      });
+    }
+
+    const token = jwt.sign(
+      {
+        username: configuredUsername,
+        role: "admin",
+      },
+      jwtSecret,
+      {
+        expiresIn: "8h",
+      }
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Admin login successful",
+      token,
+      admin: {
+        username: configuredUsername,
+        role: "admin",
+      },
+    });
+  } catch (error) {
+    console.error("Admin login error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Admin login failed",
+    });
+  }
+};
 
 /**
  * Get all pending properties

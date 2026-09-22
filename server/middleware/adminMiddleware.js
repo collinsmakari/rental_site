@@ -1,20 +1,29 @@
-import crypto from "crypto";
+import jwt from "jsonwebtoken";
 
 const adminMiddleware = (req, res, next) => {
   try {
-    const adminKey = req.headers["x-admin-key"];
+    const authHeader = req.headers.authorization;
 
-    if (!adminKey) {
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return res.status(401).json({
         success: false,
         message: "Admin authentication required",
       });
     }
 
-    const configuredKey = process.env.ADMIN_KEY;
+    const token = authHeader.split(" ")[1];
 
-    if (!configuredKey) {
-      console.error("ADMIN_KEY is not configured in .env");
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        message: "Admin authentication required",
+      });
+    }
+
+    const jwtSecret = process.env.JWT_SECRET;
+
+    if (!jwtSecret) {
+      console.error("JWT_SECRET is not configured.");
 
       return res.status(500).json({
         success: false,
@@ -22,25 +31,30 @@ const adminMiddleware = (req, res, next) => {
       });
     }
 
-    const providedBuffer = Buffer.from(String(adminKey));
-    const configuredBuffer = Buffer.from(String(configuredKey));
+    const decoded = jwt.verify(token, jwtSecret);
 
-    if (
-      providedBuffer.length !== configuredBuffer.length ||
-      !crypto.timingSafeEqual(
-        providedBuffer,
-        configuredBuffer
-      )
-    ) {
+    if (decoded.role !== "admin") {
       return res.status(403).json({
         success: false,
-        message: "Invalid admin credentials",
+        message: "Admin access denied",
       });
     }
+
+    req.admin = decoded;
 
     next();
   } catch (error) {
     console.error("Admin authentication error:", error);
+
+    if (
+      error.name === "JsonWebTokenError" ||
+      error.name === "TokenExpiredError"
+    ) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid or expired admin session",
+      });
+    }
 
     return res.status(500).json({
       success: false,
