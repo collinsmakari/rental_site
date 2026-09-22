@@ -184,6 +184,8 @@ export const approveProperty = async (req, res) => {
  */
 export const rejectProperty = async (req, res) => {
   try {
+    const { reason } = req.body;
+
     const property = await Property.findById(
       req.params.id
     );
@@ -195,7 +197,15 @@ export const rejectProperty = async (req, res) => {
       });
     }
 
+    if (!reason || !reason.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "Rejection reason is required",
+      });
+    }
+
     property.status = "rejected";
+    property.rejectionReason = reason.trim();
 
     await property.save();
 

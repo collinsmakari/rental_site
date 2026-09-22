@@ -168,6 +168,16 @@ const propertySchema = new mongoose.Schema(
       default: "pending",
       index: true,
     },
+
+    // ==========================================
+    // REJECTION INFORMATION
+    // ==========================================
+
+    rejectionReason: {
+      type: String,
+      default: "",
+      trim: true,
+    },
   },
   {
     timestamps: true,
