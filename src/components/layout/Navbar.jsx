@@ -103,7 +103,7 @@ const Navbar = () => {
           onClick={() => setOpen((current) => !current)}
           className="
             absolute
-            right-4
+            right-6
             top-1/2
             flex
             h-10
