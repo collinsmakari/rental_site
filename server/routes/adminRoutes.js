@@ -16,46 +16,54 @@ const router = express.Router();
 |--------------------------------------------------------------------------
 | PUBLIC ADMIN LOGIN
 |--------------------------------------------------------------------------
+| This route MUST come before router.use(adminMiddleware).
+| The admin does not have a JWT before logging in.
 */
-router.post(
-  "/login",
-  (req, res, next) => {
-    console.log(
-      "========== ADMIN LOGIN ROUTE REACHED =========="
-    );
-
-    console.log(
-      "Request body:",
-      req.body
-    );
-
-    next();
-  },
-  adminLogin
-);
+router.post("/login", adminLogin);
 
 /*
 |--------------------------------------------------------------------------
 | PROTECTED ADMIN ROUTES
 |--------------------------------------------------------------------------
+| Everything below this line requires a valid JWT.
 */
 router.use(adminMiddleware);
 
+/*
+|--------------------------------------------------------------------------
+| Pending properties
+|--------------------------------------------------------------------------
+*/
 router.get(
   "/properties/pending",
   getPendingProperties
 );
 
+/*
+|--------------------------------------------------------------------------
+| All properties
+|--------------------------------------------------------------------------
+*/
 router.get(
   "/properties",
   getAllProperties
 );
 
+/*
+|--------------------------------------------------------------------------
+| Approve property
+|--------------------------------------------------------------------------
+*/
 router.patch(
   "/properties/:id/approve",
   approveProperty
 );
 
+/*
+|--------------------------------------------------------------------------
+| Reject property
+|--------------------------------------------------------------------------
+*/
 router.patch(
   "/properties/:id/reject",
   rejectProperty
