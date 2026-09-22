@@ -8,14 +8,17 @@ const WhatsAppButton = () => {
 
   const [position, setPosition] = useState(null);
 
-  // Default position: center-right
+  // Default position: bottom-right, raised above the bottom edge
   useEffect(() => {
     const setDefaultPosition = () => {
-      const buttonSize = window.innerWidth < 640 ? 56 : 64;
+      const buttonSize = window.innerWidth < 640 ? 40 : 64;
+
+      const rightOffset = 24;
+      const bottomOffset = 80;
 
       setPosition({
-        x: window.innerWidth - buttonSize - 24,
-        y: (window.innerHeight - buttonSize) / 2,
+        x: window.innerWidth - buttonSize - rightOffset,
+        y: window.innerHeight - buttonSize - bottomOffset,
       });
     };
 
