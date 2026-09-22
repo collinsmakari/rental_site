@@ -15,16 +15,18 @@ const Navbar = () => {
   ];
 
   return (
-    <header className="fixed left-0 top-0 z-50 w-full border-b border-slate-200 bg-white/95 backdrop-blur-md">
+    <header className="fixed left-0 right-0 top-0 z-50 w-full overflow-visible border-b border-slate-200 bg-white/95 backdrop-blur-md">
+      {/* Main Navbar */}
       <div
         className="
+          relative
           mx-auto
           flex
           h-16
           w-full
+          min-w-0
           max-w-7xl
           items-center
-          justify-between
           px-4
           sm:h-18
           sm:px-6
@@ -37,7 +39,10 @@ const Navbar = () => {
           to="/"
           onClick={() => setOpen(false)}
           className="
-            shrink-0
+            min-w-0
+            max-w-[calc(100%-56px)]
+            shrink
+            truncate
             whitespace-nowrap
             text-xl
             font-bold
@@ -49,7 +54,7 @@ const Navbar = () => {
         </NavLink>
 
         {/* Desktop Navigation */}
-        <nav className="hidden items-center gap-5 lg:flex xl:gap-7">
+        <nav className="ml-auto hidden items-center gap-5 lg:flex xl:gap-7">
           {links.map((link) => (
             <NavLink
               key={link.name}
@@ -76,6 +81,7 @@ const Navbar = () => {
             to="/contact"
             className="
               shrink-0
+              whitespace-nowrap
               rounded-lg
               bg-blue-600
               px-4
@@ -94,19 +100,24 @@ const Navbar = () => {
         {/* Mobile Menu Button */}
         <button
           type="button"
-          onClick={() => setOpen(!open)}
+          onClick={() => setOpen((current) => !current)}
           className="
+            absolute
+            right-4
+            top-1/2
             flex
             h-10
             w-10
+            -translate-y-1/2
             shrink-0
             items-center
             justify-center
             rounded-lg
-            text-2xl
+            text-3xl
             text-slate-800
             transition
             hover:bg-slate-100
+            sm:right-6
             lg:hidden
           "
           aria-label="Toggle navigation menu"
@@ -118,8 +129,22 @@ const Navbar = () => {
 
       {/* Mobile Menu */}
       {open && (
-        <div className="w-full border-t border-slate-200 bg-white shadow-lg lg:hidden">
-          <nav className="mx-auto w-full max-w-7xl px-4 py-3 sm:px-6">
+        <div
+          className="
+            absolute
+            left-0
+            right-0
+            top-16
+            w-full
+            border-t
+            border-slate-200
+            bg-white
+            shadow-lg
+            sm:top-[72px]
+            lg:hidden
+          "
+        >
+          <nav className="w-full px-4 py-3 sm:px-6">
             {links.map((link) => (
               <NavLink
                 key={link.name}
