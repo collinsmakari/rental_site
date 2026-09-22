@@ -8,13 +8,16 @@ const WhatsAppButton = () => {
 
   const [position, setPosition] = useState(null);
 
-  // Default position: bottom-right, raised above the bottom edge
+  // Default position: bottom-right with comfortable spacing
   useEffect(() => {
     const setDefaultPosition = () => {
-      const buttonSize = window.innerWidth < 640 ? 40 : 64;
+      const isSmallScreen = window.innerWidth < 640;
 
-      const rightOffset = 24;
-      const bottomOffset = 80;
+      const buttonSize = isSmallScreen ? 40 : 64;
+
+      // More spacing on small screens
+      const rightOffset = isSmallScreen ? 32 : 28;
+      const bottomOffset = isSmallScreen ? 110 : 90;
 
       setPosition({
         x: window.innerWidth - buttonSize - rightOffset,
