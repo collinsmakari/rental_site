@@ -6,6 +6,7 @@ import {
   getAllProperties,
   approveProperty,
   rejectProperty,
+  toggleFeaturedProperty,
 } from "../controllers/adminController.js";
 
 import adminMiddleware from "../middleware/adminMiddleware.js";
@@ -67,6 +68,15 @@ router.patch(
 router.patch(
   "/properties/:id/reject",
   rejectProperty
+);
+
+/*|--------------------------------------------------------------------------
+| Toggle featured property
+|--------------------------------------------------------------------------
+*/
+router.patch(
+  "/properties/:id/featured",
+  toggleFeaturedProperty
 );
 
 export default router;

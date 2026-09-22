@@ -179,6 +179,52 @@ export const approveProperty = async (req, res) => {
   }
 };
 
+// Toggle featured property
+
+export const toggleFeaturedProperty = async (req, res) => {
+  try {
+    const property = await Property.findById(req.params.id);
+
+    if (!property) {
+      return res.status(404).json({
+        success: false,
+        message: "Property not found",
+      });
+    }
+
+    if (property.status !== "approved") {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Only approved properties can be added to featured properties.",
+      });
+    }
+
+    property.featured = !property.featured;
+
+    await property.save();
+
+    return res.status(200).json({
+      success: true,
+      message: property.featured
+        ? "Property added to featured properties."
+        : "Property removed from featured properties.",
+      property,
+    });
+  } catch (error) {
+    console.error(
+      "Toggle featured property error:",
+      error
+    );
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to update featured property.",
+      error: error.message,
+    });
+  }
+};
+
 /**
  * Reject property
  */

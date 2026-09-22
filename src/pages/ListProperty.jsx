@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   FaArrowLeft,
@@ -18,17 +18,6 @@ import {
 
 const API_URL =
   import.meta.env.VITE_API_URL || "http://localhost:5000";
-
-const viewingFees = {
-  Apartment: 200,
-  House: 150,
-  Bedsitter: 100,
-  Studio: 150,
-  Maisonette: 200,
-  Commercial: 300,
-  Office: 300,
-  AirBnB: 150,
-};
 
 const propertyTypes = [
   "Apartment",
@@ -76,12 +65,6 @@ const ListProperty = () => {
   const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
 
-  const viewingFee = useMemo(() => {
-    return form.propertyType
-      ? viewingFees[form.propertyType]
-      : null;
-  }, [form.propertyType]);
-
   // ==========================================
   // CLEAN IMAGE PREVIEW URLS
   // ==========================================
@@ -107,10 +90,20 @@ const ListProperty = () => {
   const handleChange = (event) => {
     const { name, value } = event.target;
 
-    setForm((previous) => ({
-      ...previous,
-      [name]: value,
-    }));
+    setForm((previous) => {
+      if (name === "price") {
+        return {
+          ...previous,
+          price: value,
+          deposit: value,
+        };
+      }
+
+      return {
+        ...previous,
+        [name]: value,
+      };
+    });
 
     setError("");
     setSuccess("");
@@ -524,7 +517,7 @@ const ListProperty = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-10">
+    <div className="min-h-screen bg-gradient-to-br from-slate-100 via-blue-50 to-slate-200 py-10">
       <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
 
         {/* ======================================
@@ -534,7 +527,7 @@ const ListProperty = () => {
         <div className="mb-6">
           <Link
             to="/rentals"
-            className="inline-flex items-center gap-2 text-sm font-medium text-blue-600 transition hover:text-blue-800"
+            className="inline-flex items-center gap-2 rounded-lg bg-white/80 px-3 py-2 text-sm font-medium text-blue-600 shadow-sm backdrop-blur transition hover:bg-white hover:text-blue-800"
           >
             <FaArrowLeft />
             Back to Rentals
@@ -545,19 +538,33 @@ const ListProperty = () => {
             PAGE HEADER
         ====================================== */}
 
-        <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-100 text-blue-600">
-            <FaHome className="text-2xl" />
+        <div
+          className="relative mb-8 overflow-hidden rounded-2xl bg-cover bg-center px-6 py-12 text-center shadow-lg"
+          style={{
+            backgroundImage:
+              "url('/images/img-1.jpg')",
+          }}
+        >
+          {/* Background overlay */}
+
+          <div className="absolute inset-0 bg-slate-950/60"></div>
+
+          {/* Header content */}
+
+          <div className="relative z-10">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-white/95 text-blue-600 shadow-lg">
+              <FaHome className="text-2xl" />
+            </div>
+
+            <h1 className="text-3xl font-bold text-white sm:text-4xl">
+              List Your Property
+            </h1>
+
+            <p className="mx-auto mt-3 max-w-2xl text-white/90">
+              Landlords and caretakers can submit their
+              properties for listing on our rental platform.
+            </p>
           </div>
-
-          <h1 className="text-3xl font-bold text-gray-900 sm:text-4xl">
-            List Your Property
-          </h1>
-
-          <p className="mx-auto mt-3 max-w-2xl text-gray-600">
-            Landlords and caretakers can submit their
-            properties for listing on our rental platform.
-          </p>
         </div>
 
         {/* ======================================
@@ -565,7 +572,7 @@ const ListProperty = () => {
         ====================================== */}
 
         {success && (
-          <div className="mb-6 flex items-start gap-3 rounded-xl border border-green-200 bg-green-50 p-4 text-green-800">
+          <div className="mb-6 flex items-start gap-3 rounded-xl border border-green-200 bg-green-50 p-4 text-green-800 shadow-sm">
             <FaCheckCircle className="mt-1 shrink-0" />
 
             <div>
@@ -585,7 +592,7 @@ const ListProperty = () => {
         ====================================== */}
 
         {error && (
-          <div className="mb-6 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">
+          <div className="mb-6 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-red-700 shadow-sm">
             <FaTimes className="mt-1 shrink-0" />
 
             <div>
@@ -609,7 +616,7 @@ const ListProperty = () => {
               BASIC PROPERTY INFORMATION
           ====================================== */}
 
-          <section className="rounded-2xl bg-white p-6 shadow-sm sm:p-8">
+          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-md sm:p-8">
             <div className="mb-6">
               <h2 className="text-xl font-bold text-gray-900">
                 Property Information
@@ -667,31 +674,6 @@ const ListProperty = () => {
                 </select>
               </div>
 
-              {/* VIEWING FEE */}
-
-              <div>
-                <label className="mb-2 block text-sm font-semibold text-gray-700">
-                  Viewing Fee
-                </label>
-
-                <div className="flex min-h-[50px] items-center rounded-xl border border-blue-200 bg-blue-50 px-4">
-                  {viewingFee ? (
-                    <span className="font-bold text-blue-700">
-                      KSh {viewingFee}
-                    </span>
-                  ) : (
-                    <span className="text-sm text-gray-500">
-                      Select a property type
-                    </span>
-                  )}
-                </div>
-
-                <p className="mt-1 text-xs text-gray-500">
-                  The viewing fee is automatically
-                  determined by the property type.
-                </p>
-              </div>
-
               {/* LOCATION */}
 
               <div className="md:col-span-2">
@@ -729,24 +711,30 @@ const ListProperty = () => {
                   placeholder="35000"
                   className="w-full rounded-xl border border-gray-300 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                 />
+
+                <p className="mt-1 text-xs text-gray-500">
+                  The deposit is automatically set to the same amount.
+                </p>
               </div>
 
               {/* DEPOSIT */}
 
               <div>
                 <label className="mb-2 block text-sm font-semibold text-gray-700">
-                  Deposit (KSh) *
+                  Deposit (KSh)
                 </label>
 
                 <input
                   type="number"
                   name="deposit"
                   value={form.deposit}
-                  onChange={handleChange}
-                  min="0"
-                  placeholder="35000"
-                  className="w-full rounded-xl border border-gray-300 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                  readOnly
+                  className="w-full cursor-not-allowed rounded-xl border border-gray-200 bg-gray-100 px-4 py-3 text-gray-700 outline-none"
                 />
+
+                <p className="mt-1 text-xs text-gray-500">
+                  Deposit equals the monthly rent.
+                </p>
               </div>
 
               {/* AREA */}
@@ -884,7 +872,7 @@ const ListProperty = () => {
               AMENITIES
           ====================================== */}
 
-          <section className="rounded-2xl bg-white p-6 shadow-sm sm:p-8">
+          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-md sm:p-8">
             <div className="mb-6">
               <h2 className="text-xl font-bold text-gray-900">
                 Amenities
@@ -945,7 +933,7 @@ const ListProperty = () => {
               PROPERTY PHOTOS
           ====================================== */}
 
-          <section className="rounded-2xl bg-white p-6 shadow-sm sm:p-8">
+          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-md sm:p-8">
             <div className="mb-6">
               <h2 className="text-xl font-bold text-gray-900">
                 Property Photos
@@ -1029,7 +1017,7 @@ const ListProperty = () => {
               PROPERTY VIDEOS
           ====================================== */}
 
-          <section className="rounded-2xl bg-white p-6 shadow-sm sm:p-8">
+          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-md sm:p-8">
             <div className="mb-6">
               <h2 className="text-xl font-bold text-gray-900">
                 Property Videos
@@ -1121,7 +1109,7 @@ const ListProperty = () => {
               MAP
           ====================================== */}
 
-          <section className="rounded-2xl bg-white p-6 shadow-sm sm:p-8">
+          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-md sm:p-8">
             <div className="mb-6">
               <h2 className="text-xl font-bold text-gray-900">
                 Location & Map
@@ -1153,7 +1141,7 @@ const ListProperty = () => {
               LANDLORD INFORMATION
           ====================================== */}
 
-          <section className="rounded-2xl bg-white p-6 shadow-sm sm:p-8">
+          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-md sm:p-8">
             <div className="mb-6">
               <h2 className="text-xl font-bold text-gray-900">
                 Landlord Information
@@ -1233,7 +1221,7 @@ const ListProperty = () => {
               CARETAKER INFORMATION
           ====================================== */}
 
-          <section className="rounded-2xl bg-white p-6 shadow-sm sm:p-8">
+          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-md sm:p-8">
             <div className="mb-6">
               <h2 className="text-xl font-bold text-gray-900">
                 Caretaker Information
@@ -1295,7 +1283,7 @@ const ListProperty = () => {
               SUBMIT
           ====================================== */}
 
-          <section className="rounded-2xl border border-blue-100 bg-blue-50 p-6 sm:p-8">
+          <section className="rounded-2xl border border-blue-200 bg-blue-100/80 p-6 shadow-md sm:p-8">
             <div className="flex items-start gap-3">
               <FaCheckCircle className="mt-1 shrink-0 text-blue-600" />
 
@@ -1304,7 +1292,7 @@ const ListProperty = () => {
                   Before you submit
                 </h3>
 
-                <p className="mt-1 text-sm leading-6 text-gray-600">
+                <p className="mt-1 text-sm leading-6 text-gray-700">
                   Your property will be reviewed by our
                   administration team before it becomes
                   publicly visible. The viewing fee is
