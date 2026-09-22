@@ -15,26 +15,56 @@ const Navbar = () => {
   ];
 
   return (
-    <header className="fixed top-0 left-0 z-50 w-full border-b border-slate-200 bg-white/90 backdrop-blur-md">
-      <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-6">
+    <header className="fixed left-0 top-0 z-50 w-full border-b border-slate-200 bg-white/95 backdrop-blur-md">
+      <div
+        className="
+          mx-auto
+          flex
+          h-16
+          w-full
+          max-w-7xl
+          items-center
+          justify-between
+          px-4
+          sm:h-18
+          sm:px-6
+          lg:h-20
+          lg:px-8
+        "
+      >
         {/* Logo */}
         <NavLink
           to="/"
-          className="text-2xl font-bold text-slate-900"
+          onClick={() => setOpen(false)}
+          className="
+            shrink-0
+            whitespace-nowrap
+            text-xl
+            font-bold
+            text-slate-900
+            sm:text-2xl
+          "
         >
           RentMe
         </NavLink>
 
-        {/* Desktop */}
-        <nav className="hidden items-center gap-8 lg:flex">
+        {/* Desktop Navigation */}
+        <nav className="hidden items-center gap-5 lg:flex xl:gap-7">
           {links.map((link) => (
             <NavLink
               key={link.name}
               to={link.path}
               className={({ isActive }) =>
-                isActive
-                  ? "font-semibold text-blue-600"
-                  : "text-slate-700 transition hover:text-blue-600"
+                `
+                whitespace-nowrap
+                text-sm
+                transition
+                ${
+                  isActive
+                    ? "font-semibold text-blue-600"
+                    : "text-slate-700 hover:text-blue-600"
+                }
+              `
               }
             >
               {link.name}
@@ -44,7 +74,18 @@ const Navbar = () => {
           {/* Book Now */}
           <NavLink
             to="/contact"
-            className="rounded-lg bg-blue-600 px-5 py-3 font-medium text-white transition hover:bg-blue-700"
+            className="
+              shrink-0
+              rounded-lg
+              bg-blue-600
+              px-4
+              py-2.5
+              text-sm
+              font-medium
+              text-white
+              transition
+              hover:bg-blue-700
+            "
           >
             Book Now
           </NavLink>
@@ -52,27 +93,53 @@ const Navbar = () => {
 
         {/* Mobile Menu Button */}
         <button
+          type="button"
           onClick={() => setOpen(!open)}
-          className="text-3xl lg:hidden"
+          className="
+            flex
+            h-10
+            w-10
+            shrink-0
+            items-center
+            justify-center
+            rounded-lg
+            text-2xl
+            text-slate-800
+            transition
+            hover:bg-slate-100
+            lg:hidden
+          "
           aria-label="Toggle navigation menu"
+          aria-expanded={open}
         >
           {open ? <HiX /> : <HiMenu />}
         </button>
       </div>
 
-      {/* Mobile */}
+      {/* Mobile Menu */}
       {open && (
-        <div className="border-t border-slate-200 bg-white lg:hidden">
-          <div className="flex flex-col p-6">
+        <div className="w-full border-t border-slate-200 bg-white shadow-lg lg:hidden">
+          <nav className="mx-auto w-full max-w-7xl px-4 py-3 sm:px-6">
             {links.map((link) => (
               <NavLink
                 key={link.name}
                 to={link.path}
                 onClick={() => setOpen(false)}
                 className={({ isActive }) =>
-                  isActive
-                    ? "py-3 font-semibold text-blue-600"
-                    : "py-3 text-slate-700 transition hover:text-blue-600"
+                  `
+                  block
+                  w-full
+                  rounded-lg
+                  px-3
+                  py-3
+                  text-sm
+                  transition
+                  ${
+                    isActive
+                      ? "bg-blue-50 font-semibold text-blue-600"
+                      : "text-slate-700 hover:bg-slate-50 hover:text-blue-600"
+                  }
+                `
                 }
               >
                 {link.name}
@@ -83,11 +150,25 @@ const Navbar = () => {
             <NavLink
               to="/contact"
               onClick={() => setOpen(false)}
-              className="mt-3 rounded-lg bg-blue-600 px-5 py-3 text-center font-medium text-white transition hover:bg-blue-700"
+              className="
+                mt-3
+                block
+                w-full
+                rounded-lg
+                bg-blue-600
+                px-5
+                py-3
+                text-center
+                text-sm
+                font-medium
+                text-white
+                transition
+                hover:bg-blue-700
+              "
             >
               Book Now
             </NavLink>
-          </div>
+          </nav>
         </div>
       )}
     </header>
