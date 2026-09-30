@@ -381,6 +381,30 @@ export const getPropertyById = async (req, res) => {
   }
 };
 
+export const getFeaturedProperties = async (req, res) => {
+  try {
+    const properties = await Property.find({ featured: true })
+      .select(
+        "title location price propertyType bedrooms bathrooms area furnished featured images"
+      )
+      .lean();
+
+    res.status(200).json({
+      success: true,
+      count: properties.length,
+      properties,
+    });
+  } catch (error) {
+    console.error("Error fetching featured properties:", error);
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to load featured properties",
+    });
+  }
+};
+
+
 // ==========================================
 // GET PROTECTED PROPERTY INFORMATION
 // PAYMENT REQUIRED

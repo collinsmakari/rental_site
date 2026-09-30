@@ -3,6 +3,7 @@ import express from "express";
 import {
   createProperty,
   getProperties,
+  getFeaturedProperties,
   getPropertyById,
   getProtectedProperty,
   updateProperty,
@@ -25,6 +26,16 @@ router.post(
     { name: "videos", maxCount: 5 },
   ]),
   createProperty
+);
+
+// ==========================================
+// GET FEATURED PROPERTIES
+// PUBLIC
+// ==========================================
+
+router.get(
+  "/featured",
+  getFeaturedProperties
 );
 
 // ==========================================
