@@ -10,7 +10,11 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "express-mongo-sanitize": "^2.2.0",
+    "express-rate-limit": "^8.7.0",
     "framer-motion": "^12.43.0",
+    "helmet": "^8.3.0",
+    "hpp": "^0.2.3",
     "lucide-react": "^1.28.0",
     "react": "^19.2.8",
     "react-countup": "^6.5.3",
