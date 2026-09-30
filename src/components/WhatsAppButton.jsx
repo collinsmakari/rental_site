@@ -6,31 +6,36 @@ const WhatsAppButton = () => {
   const draggingRef = useRef(false);
   const movedRef = useRef(false);
 
-  const [position, setPosition] = useState(null);
+  // Calculate the initial position immediately
+  const getDefaultPosition = () => {
+    const isSmallScreen = window.innerWidth < 640;
 
-  // Default position: bottom-right with comfortable spacing
+    const buttonSize = isSmallScreen ? 40 : 64;
+    const rightOffset = isSmallScreen ? 32 : 28;
+    const bottomOffset = isSmallScreen ? 110 : 90;
+
+    return {
+      x: window.innerWidth - buttonSize - rightOffset,
+      y: window.innerHeight - buttonSize - bottomOffset,
+    };
+  };
+
+  // Button now has a position immediately instead of waiting for useEffect
+  const [position, setPosition] = useState(getDefaultPosition);
+
+  // Keep the default position responsive when the window is resized
   useEffect(() => {
-    const setDefaultPosition = () => {
-      const isSmallScreen = window.innerWidth < 640;
-
-      const buttonSize = isSmallScreen ? 40 : 64;
-
-      // More spacing on small screens
-      const rightOffset = isSmallScreen ? 32 : 28;
-      const bottomOffset = isSmallScreen ? 110 : 90;
-
-      setPosition({
-        x: window.innerWidth - buttonSize - rightOffset,
-        y: window.innerHeight - buttonSize - bottomOffset,
-      });
+    const handleResize = () => {
+      // Only reset position when the button isn't being dragged
+      if (!draggingRef.current) {
+        setPosition(getDefaultPosition());
+      }
     };
 
-    setDefaultPosition();
-
-    window.addEventListener("resize", setDefaultPosition);
+    window.addEventListener("resize", handleResize);
 
     return () => {
-      window.removeEventListener("resize", setDefaultPosition);
+      window.removeEventListener("resize", handleResize);
     };
   }, []);
 
@@ -64,16 +69,13 @@ const WhatsAppButton = () => {
       buttonRef.current.dataset.offsetY
     );
 
-    const buttonWidth =
-      buttonRef.current.offsetWidth;
-
-    const buttonHeight =
-      buttonRef.current.offsetHeight;
+    const buttonWidth = buttonRef.current.offsetWidth;
+    const buttonHeight = buttonRef.current.offsetHeight;
 
     let x = event.clientX - offsetX;
     let y = event.clientY - offsetY;
 
-    // Keep button inside the viewport
+    // Keep button inside viewport
     const maxX = window.innerWidth - buttonWidth;
     const maxY = window.innerHeight - buttonHeight;
 
@@ -94,23 +96,19 @@ const WhatsAppButton = () => {
     buttonRef.current?.releasePointerCapture?.(
       event.pointerId
     );
+
+    // Give the click event a chance to detect the drag
+    setTimeout(() => {
+      movedRef.current = false;
+    }, 50);
   };
 
   const handleClick = (event) => {
-    // Prevent WhatsApp from opening if the user dragged
-    // the button instead of simply clicking it.
+    // Don't open WhatsApp when the button was dragged
     if (movedRef.current) {
       event.preventDefault();
-
-      setTimeout(() => {
-        movedRef.current = false;
-      }, 100);
-
-      return;
     }
   };
-
-  if (!position) return null;
 
   const phoneNumber = "254710997933";
 
@@ -118,8 +116,7 @@ const WhatsAppButton = () => {
     "Hello, I am interested in the properties listed on your website."
   );
 
-  const whatsappUrl =
-    `https://wa.me/${phoneNumber}?text=${message}`;
+  const whatsappUrl = `https://wa.me/${phoneNumber}?text=${message}`;
 
   return (
     <a
