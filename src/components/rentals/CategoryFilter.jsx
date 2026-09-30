@@ -26,22 +26,86 @@ const CategoryFilter = ({
     }, 100);
   };
 
+  const visibleCategories = categories.slice(0, 2);
+  const moreCategories = categories.slice(2);
+
   return (
-    <div className="flex flex-wrap gap-3">
-      {categories.map((category) => (
-        <button
-          key={category.value}
-          type="button"
-          onClick={() => handleCategoryClick(category.value)}
-          className={`rounded-full border px-5 py-2 transition ${
-            selectedCategory === category.value
+    <div className="flex flex-wrap items-center gap-3">
+      {/* ========================================
+          MOBILE
+          Only first two categories
+      ======================================== */}
+      <div className="flex items-center gap-2 sm:hidden">
+        {visibleCategories.map((category) => (
+          <button
+            key={category.value}
+            type="button"
+            onClick={() => handleCategoryClick(category.value)}
+            className={`rounded-full border px-4 py-2 text-sm transition ${
+              selectedCategory === category.value
+                ? "border-orange-500 bg-orange-500 text-white"
+                : "border-slate-300 bg-white text-slate-700 hover:border-orange-500 hover:bg-orange-500 hover:text-white"
+            }`}
+          >
+            {category.label}
+          </button>
+        ))}
+
+        {/* More Dropdown */}
+        <select
+          value={
+            moreCategories.some(
+              (category) => category.value === selectedCategory
+            )
+              ? selectedCategory
+              : ""
+          }
+          onChange={(e) => {
+            if (e.target.value) {
+              handleCategoryClick(e.target.value);
+            }
+          }}
+          className={`rounded-full border px-4 py-2 text-sm outline-none transition ${
+            moreCategories.some(
+              (category) => category.value === selectedCategory
+            )
               ? "border-orange-500 bg-orange-500 text-white"
-              : "border-slate-300 bg-white text-slate-700 hover:border-orange-500 hover:bg-orange-500 hover:text-white"
+              : "border-slate-300 bg-white text-slate-700"
           }`}
         >
-          {category.label}
-        </button>
-      ))}
+          <option value="">More ▾</option>
+
+          {moreCategories.map((category) => (
+            <option
+              key={category.value}
+              value={category.value}
+            >
+              {category.label}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* ========================================
+          DESKTOP
+          Show all categories
+      ======================================== */}
+      <div className="hidden flex-wrap gap-3 sm:flex">
+        {categories.map((category) => (
+          <button
+            key={category.value}
+            type="button"
+            onClick={() => handleCategoryClick(category.value)}
+            className={`rounded-full border px-5 py-2 transition ${
+              selectedCategory === category.value
+                ? "border-orange-500 bg-orange-500 text-white"
+                : "border-slate-300 bg-white text-slate-700 hover:border-orange-500 hover:bg-orange-500 hover:text-white"
+            }`}
+          >
+            {category.label}
+          </button>
+        ))}
+      </div>
     </div>
   );
 };
