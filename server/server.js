@@ -4,9 +4,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
-import mongoSanitize from "express-mongo-sanitize";
 import hpp from "hpp";
-
 import connectDB from "./config/db.js";
 import propertyRoutes from "./routes/propertyRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
@@ -119,7 +117,6 @@ app.use(
 // REQUEST SANITIZATION
 // ==================================================
 
-app.use(mongoSanitize());
 app.use(hpp());
 
 // ==================================================
