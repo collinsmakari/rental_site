@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-
+import SEO from "../components/common/SEO";
 import RentalHero from "../components/rentals/RentalHero";
 import CategoryFilter from "../components/rentals/CategoryFilter";
 import PropertyGrid from "../components/rentals/PropertyGrid";
@@ -276,7 +276,15 @@ const Rentals = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-
+{/* ===============================
+          SEO
+      =============================== */}
+<SEO
+  title="Rental Properties in Kenya | Apartments, Houses & Bedsitters | RentMe"
+  description="Find apartments, houses, bedsitters, studios, maisonettes and other rental properties in Kenya. Browse available properties by location, property type and price on RentMe."
+  keywords="rental properties Kenya, apartments for rent Kenya, houses for rent Kenya, bedsitters for rent Kenya, studios for rent Kenya, maisonettes for rent Kenya, property rentals Kenya"
+/>
+      
       {/* ===============================
           HERO
       =============================== */}
@@ -288,6 +296,7 @@ const Rentals = () => {
       =============================== */}
 
       <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+
 
         {/* ===============================
             STICKY CATEGORIES

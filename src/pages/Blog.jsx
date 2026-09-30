@@ -23,8 +23,9 @@ const Blog = () => {
   return (
     <>
       <SEO
-        title="Real Estate Blog"
-        description="Read the latest articles, property investment tips, rental guides, and real estate insights."
+        title="RentMe Blog | Rental Guides, Property Tips & Investment Advice"
+        description="Read RentMe's latest rental guides, property tips, apartment advice, investment insights and property management articles for tenants and landlords in Kenya."
+        keywords="RentMe blog, rental guides Kenya, property tips Kenya, apartment rental tips, houses for rent Kenya, property investment Kenya, property management Kenya, tenant tips Kenya, landlord tips Kenya, rental properties Kenya"
       />
 
       <section className="bg-white py-10">

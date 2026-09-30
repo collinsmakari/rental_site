@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import SEO from "../components/common/SEO";
 import { Link } from "react-router-dom";
 import {
   FaArrowLeft,
@@ -518,6 +519,9 @@ const ListProperty = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-100 via-blue-50 to-slate-200 py-10">
+
+<SEO title="List Your Property for Rent in Kenya | RentMe" description="List your apartment, house, bedsitter, studio, maisonette or commercial property on RentMe. Submit your property details and reach tenants searching for rental properties in Kenya." keywords="list property Kenya, list rental property Kenya, advertise property for rent Kenya, property listing Kenya, list apartment for rent, list house for rent, landlords Kenya, rental property advertising" noindex={false} />
+
       <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
 
         {/* ======================================

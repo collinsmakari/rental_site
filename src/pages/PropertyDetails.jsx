@@ -14,6 +14,7 @@ import {
   FaUser,
   FaVideo,
 } from "react-icons/fa";
+import SEO from "../components/common/SEO";
 
 const API_URL =
   import.meta.env.VITE_API_URL || "http://localhost:5000";
@@ -100,6 +101,37 @@ const PropertyDetails = () => {
   );
 
   // --------------------------------------------------
+  // DYNAMIC SEO
+  // --------------------------------------------------
+
+  const seoTitle = property
+    ? `${property.title} for Rent in ${property.location} | RentMe`
+    : "Property Details | RentMe";
+
+  const seoDescription = property
+    ? `View details for ${property.title} in ${property.location}. ${
+        property.bedrooms
+          ? `${property.bedrooms} bedroom`
+          : "Rental"
+      } ${
+        property.propertyType
+          ? property.propertyType.toLowerCase()
+          : "property"
+      } available for rent on RentMe.`
+    : "View rental property details, pricing, location and amenities on RentMe.";
+
+  const seoKeywords = property
+    ? [
+        `${property.title} ${property.location}`,
+        `${property.propertyType || "property"} for rent ${property.location}`,
+        `houses for rent ${property.location}`,
+        `apartments for rent ${property.location}`,
+        "rental properties Kenya",
+        "RentMe Kenya",
+      ].join(", ")
+    : "rental properties Kenya, property for rent Kenya, RentMe";
+
+  // --------------------------------------------------
   // INITIATE M-PESA PAYMENT
   // --------------------------------------------------
 
@@ -171,7 +203,6 @@ const PropertyDetails = () => {
 
       setPaymentId(data.paymentId);
 
-      // Payment has been created but is not completed yet
       setPaymentStatus(
         data.status || "pending"
       );
@@ -218,7 +249,6 @@ const PropertyDetails = () => {
       return false;
     }
 
-    // Prevent duplicate unlock requests
     if (unlockingRef.current) {
       console.log(
         "Unlock request already in progress."
@@ -335,11 +365,6 @@ const PropertyDetails = () => {
           null,
       }));
 
-      // ------------------------------------------------
-      // IMPORTANT:
-      // Mark unlocked immediately
-      // ------------------------------------------------
-
       setUnlocked(true);
       setPaymentStatus("completed");
 
@@ -437,18 +462,14 @@ const PropertyDetails = () => {
 
         setPaymentStatus(status);
 
-        // ==================================================
+        // --------------------------------------------------
         // PAYMENT COMPLETED
-        // ==================================================
+        // --------------------------------------------------
 
         if (status === "completed") {
           console.log(
             "Payment completed!"
           );
-
-          // IMPORTANT:
-          // Do NOT wait for another polling cycle.
-          // Unlock immediately.
 
           if (!unlockingRef.current) {
             const success =
@@ -464,7 +485,6 @@ const PropertyDetails = () => {
                 "Unlock finished."
               );
 
-              // Close immediately after successful unlock
               setShowPaymentModal(false);
             }
           }
@@ -472,9 +492,9 @@ const PropertyDetails = () => {
           return;
         }
 
-        // ==================================================
+        // --------------------------------------------------
         // PAYMENT FAILED
-        // ==================================================
+        // --------------------------------------------------
 
         if (status === "failed") {
           console.log(
@@ -492,9 +512,9 @@ const PropertyDetails = () => {
           return;
         }
 
-        // ==================================================
+        // --------------------------------------------------
         // PAYMENT STILL PENDING
-        // ==================================================
+        // --------------------------------------------------
 
         if (status === "pending") {
           console.log(
@@ -519,31 +539,18 @@ const PropertyDetails = () => {
       }
     };
 
-    // --------------------------------------------------
-    // NEXT POLL
-    // --------------------------------------------------
-
     function scheduleNextCheck() {
       if (cancelled) {
         return;
       }
 
-      // Poll every 2 seconds instead of 3
       timeoutId = setTimeout(
         checkStatus,
         2000
       );
     }
 
-    // --------------------------------------------------
-    // FIRST CHECK
-    // --------------------------------------------------
-
     checkStatus();
-
-    // --------------------------------------------------
-    // CLEANUP
-    // --------------------------------------------------
 
     return () => {
       cancelled = true;
@@ -659,6 +666,22 @@ const PropertyDetails = () => {
     <div className="min-h-screen bg-gray-950 text-white">
 
       {/* --------------------------------------------- */}
+      {/* SEO */}
+      {/* --------------------------------------------- */}
+
+      <SEO
+        title={seoTitle}
+        description={seoDescription}
+        keywords={seoKeywords}
+        image={images?.[0] || "/images/seo.jpg"}
+        url={
+          typeof window !== "undefined"
+            ? window.location.href
+            : undefined
+        }
+      />
+
+      {/* --------------------------------------------- */}
       {/* HEADER */}
       {/* --------------------------------------------- */}
 
@@ -687,7 +710,7 @@ const PropertyDetails = () => {
                 ? images[0]
                 : "/images/placeholder.jpg"
             }
-            alt={title}
+            alt={`${title} - ${propertyType || "Rental Property"} in ${location}`}
             className="w-full h-[300px] sm:h-[450px] object-cover"
           />
 
@@ -1043,7 +1066,7 @@ const PropertyDetails = () => {
                         <img
                           key={index}
                           src={image}
-                          alt={`${title} ${index + 2}`}
+                          alt={`${title} in ${location} - Photo ${index + 2}`}
                           className="w-full h-48 object-cover rounded-xl"
                         />
                       )
@@ -1193,9 +1216,7 @@ const PropertyDetails = () => {
               <FaTimes />
             </button>
 
-            {/* ========================================= */}
             {/* SUCCESS */}
-            {/* ========================================= */}
 
             {paymentStatus ===
               "completed" &&
@@ -1217,10 +1238,6 @@ const PropertyDetails = () => {
 
             ) : unlockLoading ? (
 
-              /* ======================================= */
-              /* UNLOCKING */
-              /* ======================================= */
-
               <div className="text-center py-8">
 
                 <div className="w-12 h-12 border-4 border-gray-700 border-t-blue-500 rounded-full animate-spin mx-auto mb-5"></div>
@@ -1238,10 +1255,6 @@ const PropertyDetails = () => {
 
             ) : paymentStatus ===
               "pending" ? (
-
-              /* ======================================= */
-              /* PAYMENT PENDING */
-              /* ======================================= */
 
               <div className="text-center py-6">
 
@@ -1279,10 +1292,6 @@ const PropertyDetails = () => {
 
             ) : (
 
-              /* ======================================= */
-              /* PAYMENT FORM */
-              /* ======================================= */
-
               <>
 
                 <div className="text-center mb-7">
@@ -1299,8 +1308,6 @@ const PropertyDetails = () => {
                   </p>
 
                 </div>
-
-                {/* Viewing Fee */}
 
                 <div className="bg-gray-800 rounded-xl p-4 mb-6 text-center">
 
