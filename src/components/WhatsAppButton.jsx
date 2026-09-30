@@ -1,12 +1,21 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { FaWhatsapp } from "react-icons/fa";
 
 const WhatsAppButton = () => {
-  const buttonRef = useRef(null);
-  const draggingRef = useRef(false);
-  const movedRef = useRef(false);
+  const phoneNumber = "254710997933";
 
-  // Calculate the initial position immediately
+  const message = encodeURIComponent(
+    "Hello, I am interested in the properties listed on your website."
+  );
+
+  // WhatsApp app link
+  const whatsappAppUrl =
+    `whatsapp://send?phone=${phoneNumber}&text=${message}`;
+
+  // WhatsApp web fallback
+  const whatsappWebUrl =
+    `https://wa.me/${phoneNumber}?text=${message}`;
+
   const getDefaultPosition = () => {
     const isSmallScreen = window.innerWidth < 640;
 
@@ -20,16 +29,11 @@ const WhatsAppButton = () => {
     };
   };
 
-  // Button now has a position immediately instead of waiting for useEffect
   const [position, setPosition] = useState(getDefaultPosition);
 
-  // Keep the default position responsive when the window is resized
   useEffect(() => {
     const handleResize = () => {
-      // Only reset position when the button isn't being dragged
-      if (!draggingRef.current) {
-        setPosition(getDefaultPosition());
-      }
+      setPosition(getDefaultPosition());
     };
 
     window.addEventListener("resize", handleResize);
@@ -39,106 +43,30 @@ const WhatsAppButton = () => {
     };
   }, []);
 
-  const handlePointerDown = (event) => {
-    if (!buttonRef.current) return;
-
-    draggingRef.current = true;
-    movedRef.current = false;
-
-    const rect = buttonRef.current.getBoundingClientRect();
-
-    buttonRef.current.setPointerCapture?.(event.pointerId);
-
-    buttonRef.current.dataset.offsetX =
-      event.clientX - rect.left;
-
-    buttonRef.current.dataset.offsetY =
-      event.clientY - rect.top;
-  };
-
-  const handlePointerMove = (event) => {
-    if (!draggingRef.current || !buttonRef.current) return;
-
-    movedRef.current = true;
-
-    const offsetX = Number(
-      buttonRef.current.dataset.offsetX
-    );
-
-    const offsetY = Number(
-      buttonRef.current.dataset.offsetY
-    );
-
-    const buttonWidth = buttonRef.current.offsetWidth;
-    const buttonHeight = buttonRef.current.offsetHeight;
-
-    let x = event.clientX - offsetX;
-    let y = event.clientY - offsetY;
-
-    // Keep button inside viewport
-    const maxX = window.innerWidth - buttonWidth;
-    const maxY = window.innerHeight - buttonHeight;
-
-    x = Math.max(0, Math.min(x, maxX));
-    y = Math.max(0, Math.min(y, maxY));
-
-    setPosition({
-      x,
-      y,
-    });
-  };
-
-  const handlePointerUp = (event) => {
-    if (!draggingRef.current) return;
-
-    draggingRef.current = false;
-
-    buttonRef.current?.releasePointerCapture?.(
-      event.pointerId
-    );
-
-    // Give the click event a chance to detect the drag
-    setTimeout(() => {
-      movedRef.current = false;
-    }, 50);
-  };
-
-  const handleClick = (event) => {
-    // Don't open WhatsApp when the button was dragged
-    if (movedRef.current) {
+  const handleWhatsAppClick = (event) => {
+    // On mobile/tablets, allow the WhatsApp app to open directly.
+    if (window.innerWidth < 768) {
       event.preventDefault();
+
+      window.location.href = whatsappAppUrl;
+      return;
     }
+
+    // Desktop uses the normal WhatsApp Web link.
+    event.currentTarget.href = whatsappWebUrl;
   };
-
-  const phoneNumber = "254710997933";
-
-  const message = encodeURIComponent(
-    "Hello, I am interested in the properties listed on your website."
-  );
-
-  const whatsappUrl = `https://wa.me/${phoneNumber}?text=${message}`;
 
   return (
     <a
-      ref={buttonRef}
-      href={whatsappUrl}
-      target="_blank"
-      rel="noopener noreferrer"
+      href={whatsappWebUrl}
+      onClick={handleWhatsAppClick}
       aria-label="Chat with us on WhatsApp"
-      onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={handlePointerUp}
-      onPointerCancel={handlePointerUp}
-      onClick={handleClick}
       className="
         fixed
         z-[9999]
         flex
         h-10
         w-10
-        cursor-grab
-        touch-none
-        select-none
         items-center
         justify-center
         rounded-full
@@ -149,7 +77,6 @@ const WhatsAppButton = () => {
         duration-200
         hover:scale-110
         hover:bg-green-600
-        active:cursor-grabbing
         active:scale-95
         sm:h-16
         sm:w-16
