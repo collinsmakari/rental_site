@@ -10,6 +10,8 @@ const API_URL = `${
 }/api/properties`;
 
 const Rentals = () => {
+  console.log("🔥 RENTALS COMPONENT IS RUNNING");
+
   const [searchParams, setSearchParams] = useSearchParams();
 
   // ===============================
