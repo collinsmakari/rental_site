@@ -43,8 +43,8 @@ const CategoryFilter = ({
             onClick={() => handleCategoryClick(category.value)}
             className={`rounded-full border px-4 py-2 text-sm transition ${
               selectedCategory === category.value
-                ? "border-orange-500 bg-orange-500 text-white"
-                : "border-slate-300 bg-white text-slate-700 hover:border-orange-500 hover:bg-orange-500 hover:text-white"
+                ? "border-blue-500 bg-blue-500 text-white"
+                : "border-slate-300 bg-white text-slate-700 hover:border-blue-500 hover:bg-blue-500 hover:text-white"
             }`}
           >
             {category.label}

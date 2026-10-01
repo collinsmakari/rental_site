@@ -39,7 +39,7 @@ const Footer = () => {
           <ul className="space-y-3 text-slate-400">
             <li>Nairobi, Kenya</li>
             <li>info@rentme.co.ke</li>
-            <li>+254 700 000000</li>
+            <li>+254 710997933</li>
           </ul>
         </div>
 

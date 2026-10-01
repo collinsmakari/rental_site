@@ -180,12 +180,20 @@ const FeaturedProperties = () => {
                     </div>
 
                   </div>
-                  
+
                   {/* View Details */}
 
                   <Button
                     to={`/properties/${property._id}`}
-                    className="min-w-[180px] bg-blue-600 text-white transition-none hover:!bg-blue-600 focus:!bg-blue-600"
+                    className="
+                      min-w-[180px]
+                      bg-blue-500
+                      text-white
+                      transition-colors
+                      duration-200
+                      hover:!bg-blue-700
+                      focus:!bg-blue-700
+                    "
                   >
                     View Details
                   </Button>
@@ -200,7 +208,17 @@ const FeaturedProperties = () => {
         {/* Bottom Button */}
 
         <div className="mt-16 text-center">
-          <Button to="/rentals">
+          <Button
+            to="/rentals"
+            className="
+              bg-blue-500
+              text-white
+              transition-colors
+              duration-200
+              hover:!bg-blue-700
+              focus:!bg-blue-700
+            "
+          >
             View All Properties
           </Button>
         </div>
