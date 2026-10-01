@@ -184,6 +184,11 @@ const propertySchema = new mongoose.Schema(
   }
 );
 
+propertySchema.index({
+  status: 1,
+  createdAt: -1,
+});
+
 const Property = mongoose.model(
   "Property",
   propertySchema

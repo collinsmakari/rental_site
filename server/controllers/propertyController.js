@@ -284,33 +284,46 @@ export const createProperty = async (req, res) => {
   }
 };
 
-// ==========================================
+/// ==========================================
 // GET ALL PROPERTIES
 // PUBLIC INFORMATION ONLY
 // ==========================================
 
 export const getProperties = async (req, res) => {
+  const startTime = Date.now();
+
   try {
+    console.log("=================================");
+    console.log("GET PROPERTIES REQUEST");
+    console.log("=================================");
+
     const properties = await Property.find({
       status: "approved",
     })
       .select(
-        "title description location area propertyType price deposit viewingFee bedrooms bathrooms furnished featured amenities images available createdAt"
+        "_id title location area propertyType price bedrooms bathrooms furnished featured images"
       )
       .sort({
         createdAt: -1,
-      });
+      })
+      .lean();
 
-    const publicProperties = properties.map((property) => {
-      const propertyObject = property.toObject();
+    const publicProperties = properties.map((property) => ({
+      ...property,
+      images: property.images?.length
+        ? [property.images[0]]
+        : [],
+    }));
 
-      return {
-        ...propertyObject,
-        images: property.images?.length
-          ? [property.images[0]]
-          : [],
-      };
-    });
+    const queryTime = Date.now() - startTime;
+
+    console.log(
+      `MongoDB properties query: ${queryTime} ms`
+    );
+
+    console.log(
+      `Properties returned: ${publicProperties.length}`
+    );
 
     return res.status(200).json({
       success: true,
@@ -318,12 +331,17 @@ export const getProperties = async (req, res) => {
       properties: publicProperties,
     });
   } catch (error) {
-    console.error("Get properties error:", error);
+    const queryTime = Date.now() - startTime;
+
+    console.error("=================================");
+    console.error("GET PROPERTIES FAILED");
+    console.error(`Time before failure: ${queryTime} ms`);
+    console.error(error);
+    console.error("=================================");
 
     return res.status(500).json({
       success: false,
       message: "Failed to fetch properties",
-      error: error.message,
     });
   }
 };

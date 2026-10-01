@@ -57,7 +57,12 @@ const fetchProperties = useCallback(async () => {
     setLoading(true);
     setError("");
 
-    console.log("📡 Fetching properties from:", API_URL);
+   const startTime = performance.now();
+
+console.log(
+  "📡 Fetching properties from:",
+  API_URL
+);
 
     const response = await fetch(API_URL, {
       method: "GET",
@@ -74,11 +79,11 @@ const fetchProperties = useCallback(async () => {
 
     const data = await response.json();
 
-    console.log("✅ PROPERTIES API RESPONSE:", data);
-    console.log(
-      "🏠 PROPERTY COUNT:",
-      data?.properties?.length
-    );
+    const endTime = performance.now();
+
+console.log(
+  `⏱️ Properties API: ${(endTime - startTime).toFixed(0)} ms`
+);
 
     if (!Array.isArray(data?.properties)) {
       throw new Error(
