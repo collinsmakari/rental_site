@@ -64,6 +64,9 @@ const Rentals = () => {
 
         const data = await response.json();
 
+        console.log("PROPERTIES API RESPONSE:", data);
+console.log("PROPERTY COUNT:", data?.properties?.length);
+
         console.log("Properties received:", data);
 
         // Backend response:
@@ -88,6 +91,7 @@ const Rentals = () => {
           "Unable to load properties. Please try again."
         );
       } finally {
+        console.log("SETTING LOADING FALSE");
         setLoading(false);
       }
     };
