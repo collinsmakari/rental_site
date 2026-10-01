@@ -9,6 +9,8 @@ const API_URL = `${
   import.meta.env.VITE_API_URL || "http://localhost:5000"
 }/api/properties`;
 
+const CACHE_KEY = "rentme_properties_cache";
+
 const Rentals = () => {
   console.log("🔥 RENTALS COMPONENT IS RUNNING");
 
@@ -23,11 +25,38 @@ const Rentals = () => {
   const urlMaxPrice = searchParams.get("maxPrice") || "";
 
   // ===============================
+  // LOAD CACHED PROPERTIES
+  // ===============================
+
+  const getCachedProperties = () => {
+    try {
+      const cached = sessionStorage.getItem(CACHE_KEY);
+
+      if (!cached) {
+        return [];
+      }
+
+      const parsed = JSON.parse(cached);
+
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+      console.error("Failed to read property cache:", error);
+      return [];
+    }
+  };
+
+  // ===============================
   // PROPERTY STATE
   // ===============================
 
-  const [properties, setProperties] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const cachedProperties = getCachedProperties();
+
+  const [properties, setProperties] = useState(cachedProperties);
+
+  const [loading, setLoading] = useState(
+    cachedProperties.length === 0
+  );
+
   const [error, setError] = useState("");
 
   // ===============================
@@ -47,16 +76,41 @@ const Rentals = () => {
   );
 
   // ===============================
-  // GET PROPERTIES FROM BACKEND
+  // GET PROPERTIES
   // ===============================
 
   useEffect(() => {
+    let cancelled = false;
+
     const fetchProperties = async () => {
+      console.log("🔥 FETCH STARTED");
+
+      const startTime = performance.now();
+
       try {
-        setLoading(true);
+        // Only show the loading state when there
+        // are no properties available yet.
+        if (properties.length === 0) {
+          setLoading(true);
+        }
+
         setError("");
 
-        const response = await fetch(API_URL);
+        console.log("🌐 Fetching:", API_URL);
+
+        const response = await fetch(API_URL, {
+          method: "GET",
+          headers: {
+            Accept: "application/json",
+          },
+          cache: "no-store",
+        });
+
+        console.log(
+          "📡 RESPONSE RECEIVED:",
+          response.status,
+          `${Math.round(performance.now() - startTime)}ms`
+        );
 
         if (!response.ok) {
           throw new Error(
@@ -66,38 +120,79 @@ const Rentals = () => {
 
         const data = await response.json();
 
-        console.log("PROPERTIES API RESPONSE:", data);
-console.log("PROPERTY COUNT:", data?.properties?.length);
+        console.log(
+          "📦 JSON RECEIVED:",
+          `${Math.round(performance.now() - startTime)}ms`
+        );
 
-        console.log("Properties received:", data);
+        const freshProperties = Array.isArray(data.properties)
+          ? data.properties
+          : [];
 
-        // Backend response:
-        // {
-        //   success: true,
-        //   count: ...,
-        //   properties: [...]
-        // }
+        console.log(
+          "📊 PROPERTY COUNT:",
+          freshProperties.length
+        );
 
-        setProperties(
-          Array.isArray(data.properties)
-            ? data.properties
-            : []
+        if (cancelled) {
+          return;
+        }
+
+        // Update React state immediately
+        setProperties(freshProperties);
+
+        // Save latest data for instant future loads
+        try {
+          sessionStorage.setItem(
+            CACHE_KEY,
+            JSON.stringify(freshProperties)
+          );
+        } catch (cacheError) {
+          console.warn(
+            "Could not cache properties:",
+            cacheError
+          );
+        }
+
+        console.log(
+          "✅ PROPERTIES UPDATED:",
+          `${Math.round(performance.now() - startTime)}ms`
         );
       } catch (error) {
+        if (cancelled) {
+          return;
+        }
+
         console.error(
-          "Failed to fetch properties:",
+          "❌ FAILED TO FETCH PROPERTIES:",
           error
         );
 
-        setError(
-          "Unable to load properties. Please try again."
-        );
+        // Only show an error if we have no cached data
+        if (properties.length === 0) {
+          setError(
+            "Unable to load properties. Please try again."
+          );
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+
+          console.log(
+            "🔓 LOADING COMPLETE:",
+            `${Math.round(performance.now() - startTime)}ms`
+          );
+        }
       }
     };
 
     fetchProperties();
+
+    return () => {
+      cancelled = true;
+    };
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ===============================
@@ -136,55 +231,42 @@ console.log("PROPERTY COUNT:", data?.properties?.length);
   // FILTER PROPERTIES
   // ===============================
 
-  const filteredProperties = properties.filter(
-    (property) => {
-      // ===============================
-      // CATEGORY
-      // ===============================
+  const filteredProperties = properties.filter((property) => {
+    // CATEGORY
+    const matchesCategory =
+      selectedCategory === "All" ||
+      String(property.propertyType || "").toLowerCase() ===
+        String(selectedCategory).toLowerCase();
 
-      const matchesCategory =
-        selectedCategory === "All" ||
-        String(property.propertyType || "").toLowerCase() ===
-          String(selectedCategory).toLowerCase();
+    // LOCATION
+    const propertyLocation = String(
+      property.location || ""
+    ).toLowerCase();
 
-      // ===============================
-      // LOCATION
-      // ===============================
+    const searchLocation = location
+      .trim()
+      .toLowerCase();
 
-      const propertyLocation = String(
-        property.location || ""
-      ).toLowerCase();
+    const matchesLocation =
+      searchLocation === "" ||
+      propertyLocation.includes(searchLocation);
 
-      const searchLocation = location
-        .trim()
-        .toLowerCase();
+    // PRICE
+    const propertyPrice = Number(property.price);
+    const maximumPrice = Number(maxPrice);
 
-      const matchesLocation =
-        searchLocation === "" ||
-        propertyLocation.includes(searchLocation);
+    const matchesPrice =
+      maxPrice === "" ||
+      (Number.isFinite(propertyPrice) &&
+        Number.isFinite(maximumPrice) &&
+        propertyPrice <= maximumPrice);
 
-      // ===============================
-      // PRICE
-      // ===============================
-
-      const propertyPrice = Number(property.price);
-      const maximumPrice = Number(maxPrice);
-
-      const matchesPrice =
-        maxPrice === "" ||
-        (
-          Number.isFinite(propertyPrice) &&
-          Number.isFinite(maximumPrice) &&
-          propertyPrice <= maximumPrice
-        );
-
-      return (
-        matchesCategory &&
-        matchesLocation &&
-        matchesPrice
-      );
-    }
-  );
+    return (
+      matchesCategory &&
+      matchesLocation &&
+      matchesPrice
+    );
+  });
 
   // ===============================
   // SCROLL HELPER
@@ -249,7 +331,6 @@ console.log("PROPERTY COUNT:", data?.properties?.length);
   // ===============================
 
   const handleCategoryChange = (category) => {
-    // ALL
     if (category === "All") {
       handleClearFilters();
       return;
@@ -281,15 +362,17 @@ console.log("PROPERTY COUNT:", data?.properties?.length);
 
   return (
     <div className="min-h-screen bg-gray-50">
-{/* ===============================
+
+      {/* ===============================
           SEO
       =============================== */}
-<SEO
-  title="Rental Properties in Kenya | Apartments, Houses & Bedsitters | RentMe"
-  description="Find apartments, houses, bedsitters, studios, maisonettes and other rental properties in Kenya. Browse available properties by location, property type and price on RentMe."
-  keywords="rental properties Kenya, apartments for rent Kenya, houses for rent Kenya, bedsitters for rent Kenya, studios for rent Kenya, maisonettes for rent Kenya, property rentals Kenya"
-/>
-      
+
+      <SEO
+        title="Rental Properties in Kenya | Apartments, Houses & Bedsitters | RentMe"
+        description="Find apartments, houses, bedsitters, studios, maisonettes and other rental properties in Kenya. Browse available properties by location, property type and price on RentMe."
+        keywords="rental properties Kenya, apartments for rent Kenya, houses for rent Kenya, bedsitters for rent Kenya, studios for rent Kenya, maisonettes for rent Kenya, property rentals Kenya"
+      />
+
       {/* ===============================
           HERO
       =============================== */}
@@ -301,7 +384,6 @@ console.log("PROPERTY COUNT:", data?.properties?.length);
       =============================== */}
 
       <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-
 
         {/* ===============================
             STICKY CATEGORIES
@@ -342,25 +424,12 @@ console.log("PROPERTY COUNT:", data?.properties?.length);
         >
 
           {/* ===============================
-              LOADING
-          =============================== */}
-
-          {loading && (
-            <div className="py-16 text-center">
-              <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-blue-600" />
-
-              <p className="text-slate-500">
-                Loading properties...
-              </p>
-            </div>
-          )}
-
-          {/* ===============================
               ERROR
           =============================== */}
 
-          {!loading && error && (
+          {error && properties.length === 0 && (
             <div className="rounded-lg bg-red-50 p-6 text-center">
+
               <p className="mb-4 text-red-600">
                 {error}
               </p>
@@ -382,6 +451,44 @@ console.log("PROPERTY COUNT:", data?.properties?.length);
               >
                 Try Again
               </button>
+
+            </div>
+          )}
+
+          {/* ===============================
+              INITIAL LOADING
+          =============================== */}
+
+          {loading && properties.length === 0 && (
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+
+              {[1, 2, 3].map((item) => (
+                <div
+                  key={item}
+                  className="
+                    overflow-hidden
+                    rounded-2xl
+                    bg-white
+                    shadow-sm
+                    animate-pulse
+                  "
+                >
+                  <div className="h-64 bg-slate-200" />
+
+                  <div className="space-y-4 p-5">
+
+                    <div className="h-5 w-3/4 rounded bg-slate-200" />
+
+                    <div className="h-4 w-1/2 rounded bg-slate-200" />
+
+                    <div className="h-4 w-2/3 rounded bg-slate-200" />
+
+                    <div className="h-10 w-full rounded bg-slate-200" />
+
+                  </div>
+                </div>
+              ))}
+
             </div>
           )}
 
@@ -389,11 +496,12 @@ console.log("PROPERTY COUNT:", data?.properties?.length);
               RESULTS
           =============================== */}
 
-          {!loading && !error && (
+          {!error && properties.length > 0 && (
             <>
               {/* RESULT COUNT */}
 
-              <div className="mb-4">
+              <div className="mb-4 flex items-center justify-between">
+
                 <p className="text-sm text-slate-500">
                   Showing{" "}
                   <span className="font-semibold text-slate-800">
@@ -403,6 +511,16 @@ console.log("PROPERTY COUNT:", data?.properties?.length);
                     ? "property"
                     : "properties"}
                 </p>
+
+                {/* Background refresh indicator */}
+
+                {loading && (
+                  <div className="flex items-center gap-2 text-xs text-slate-400">
+                    <span className="h-2 w-2 animate-pulse rounded-full bg-blue-500" />
+                    Updating...
+                  </div>
+                )}
+
               </div>
 
               {/* PROPERTY GRID */}
@@ -413,6 +531,7 @@ console.log("PROPERTY COUNT:", data?.properties?.length);
                 />
               ) : (
                 <div className="rounded-xl bg-white px-6 py-16 text-center shadow-sm">
+
                   <h3 className="text-lg font-semibold text-slate-800">
                     No properties found
                   </h3>
@@ -440,6 +559,7 @@ console.log("PROPERTY COUNT:", data?.properties?.length);
                   >
                     Clear Filters
                   </button>
+
                 </div>
               )}
             </>
