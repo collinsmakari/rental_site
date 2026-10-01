@@ -174,6 +174,12 @@ app.use(
 );
 
 // ==================================================
+// DATABASE CONNECTION
+// ==================================================
+
+connectDB();
+
+// ==================================================
 // API ROUTES
 // ==================================================
 
@@ -262,29 +268,15 @@ app.use((err, req, res, next) => {
 // START SERVER
 // ==================================================
 
-const startServer = async () => {
-  try {
-    await connectDB();
-
-    app.listen(PORT, "0.0.0.0", () => {
-      console.log("=================================");
-      console.log("RentMe Rental Backend");
-      console.log("=================================");
-      console.log(`Port: ${PORT}`);
-      console.log(
-        `Environment: ${process.env.NODE_ENV || "development"}`
-      );
-      console.log("MongoDB: Connected");
-      console.log("Helmet: Enabled");
-      console.log("CORS: Enabled");
-      console.log("Rate Limiting: Enabled");
-      console.log("Request Sanitization: Enabled");
-      console.log("=================================");
-    });
-  } catch (error) {
-    console.error("Failed to start server:", error);
-    process.exit(1);
-  }
-};
-
-startServer();
+app.listen(PORT, "0.0.0.0", () => {
+  console.log("=================================");
+  console.log("RentMe Rental Backend");
+  console.log("=================================");
+  console.log(`Port: ${PORT}`);
+  console.log(`Environment: ${process.env.NODE_ENV || "development"}`);
+  console.log("Helmet: Enabled");
+  console.log("CORS: Enabled");
+  console.log("Rate Limiting: Enabled");
+  console.log("Request Sanitization: Enabled");
+  console.log("=================================");
+});

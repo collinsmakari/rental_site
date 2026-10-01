@@ -284,7 +284,7 @@ export const createProperty = async (req, res) => {
   }
 };
 
-/// ==========================================
+// ==========================================
 // GET ALL PROPERTIES
 // PUBLIC INFORMATION ONLY
 // ==========================================
@@ -301,7 +301,7 @@ export const getProperties = async (req, res) => {
       status: "approved",
     })
       .select(
-        "_id title location area propertyType price bedrooms bathrooms furnished featured images"
+        "_id title location area propertyType price bedrooms bathrooms furnished featured images available"
       )
       .sort({
         createdAt: -1,
