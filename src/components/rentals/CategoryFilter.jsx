@@ -69,7 +69,7 @@ const CategoryFilter = ({
             moreCategories.some(
               (category) => category.value === selectedCategory
             )
-              ? "border-orange-500 bg-orange-500 text-white"
+              ? "border-blue-500 bg-blue-500 text-white"
               : "border-slate-300 bg-white text-slate-700"
           }`}
         >
