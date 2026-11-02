@@ -1,3 +1,4 @@
+
 import { motion } from "framer-motion";
 
 const stats = [
@@ -21,7 +22,7 @@ const stats = [
 
 const Statistics = () => {
   return (
-    <section className="bg-primary py-16 text-white md:py-20">
+    <section className="bg-slate-50 py-16 md:py-20">
       <div className="container-custom">
         <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
           {stats.map((stat, index) => (
@@ -36,11 +37,11 @@ const Statistics = () => {
                 delay: index * 0.1,
               }}
             >
-              <h2 className="text-4xl font-bold md:text-5xl">
+              <h2 className="text-4xl font-bold text-blue-700 md:text-5xl">
                 {stat.value}
               </h2>
 
-              <p className="mt-3 text-base text-slate-200 md:text-lg">
+              <p className="mt-3 text-base font-medium text-slate-600 md:text-lg">
                 {stat.label}
               </p>
             </motion.div>
