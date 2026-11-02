@@ -7,22 +7,22 @@ const stats = [
     label: "Properties",
   },
   {
-    value: "300+",
+    value: "100+",
     label: "Happy Clients",
   },
   {
-    value: "150+",
+    value: "50+",
     label: "Property Owners",
   },
   {
-    value: "5+",
+    value: "1+",
     label: "Years Experience",
   },
 ];
 
 const Statistics = () => {
   return (
-    <section className="bg-slate-50 py-16 md:py-20">
+    <section className="bg-white py-16 md:py-20">
       <div className="container-custom">
         <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
           {stats.map((stat, index) => (
