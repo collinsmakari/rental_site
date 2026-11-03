@@ -1,4 +1,6 @@
+
 import { useState } from "react";
+import emailjs from "@emailjs/browser";
 
 const ContactForm = () => {
   const [form, setForm] = useState({
@@ -9,6 +11,9 @@ const ContactForm = () => {
     message: "",
   });
 
+  const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState("");
+
   const handleChange = (e) => {
     setForm({
       ...form,
@@ -16,20 +21,44 @@ const ContactForm = () => {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    console.log(form);
+    setLoading(true);
+    setStatus("");
 
-    alert("Message sent successfully!");
+    try {
+      await emailjs.send(
+        import.meta.env.VITE_EMAILJS_SERVICE_ID,
+        import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
+        {
+          name: form.name,
+          email: form.email,
+          phone: form.phone,
+          subject: form.subject,
+          message: form.message,
+          reply_to: form.email,
+        },
+        import.meta.env.VITE_EMAILJS_PUBLIC_KEY
+      );
 
-    setForm({
-      name: "",
-      email: "",
-      phone: "",
-      subject: "",
-      message: "",
-    });
+      setStatus("success");
+
+      setForm({
+        name: "",
+        email: "",
+        phone: "",
+        subject: "",
+        message: "",
+      });
+
+    } catch (error) {
+      console.error("Email sending failed:", error);
+      setStatus("error");
+
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -42,7 +71,20 @@ const ContactForm = () => {
         We'd love to hear from you. Fill out the form below.
       </p>
 
+      {status === "success" && (
+        <div className="mb-6 rounded-xl bg-green-50 p-4 text-green-700">
+          Your message has been sent successfully!
+        </div>
+      )}
+
+      {status === "error" && (
+        <div className="mb-6 rounded-xl bg-red-50 p-4 text-red-700">
+          Something went wrong. Please try again.
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className="space-y-6">
+
         <input
           type="text"
           name="name"
@@ -61,7 +103,7 @@ const ContactForm = () => {
             value={form.email}
             onChange={handleChange}
             required
-            className="rounded-xl border border-slate-300 px-5 py-3 outline-none transition focus:border-blue-600"
+            className="w-full rounded-xl border border-slate-300 px-5 py-3 outline-none transition focus:border-blue-600"
           />
 
           <input
@@ -70,7 +112,7 @@ const ContactForm = () => {
             placeholder="Phone Number"
             value={form.phone}
             onChange={handleChange}
-            className="rounded-xl border border-slate-300 px-5 py-3 outline-none transition focus:border-blue-600"
+            className="w-full rounded-xl border border-slate-300 px-5 py-3 outline-none focus:border-blue-600"
           />
         </div>
 
@@ -81,7 +123,7 @@ const ContactForm = () => {
           value={form.subject}
           onChange={handleChange}
           required
-          className="w-full rounded-xl border border-slate-300 px-5 py-3 outline-none transition focus:border-blue-600"
+          className="w-full rounded-xl border border-slate-300 px-5 py-3 outline-none focus:border-blue-600"
         />
 
         <textarea
@@ -91,15 +133,17 @@ const ContactForm = () => {
           value={form.message}
           onChange={handleChange}
           required
-          className="w-full rounded-xl border border-slate-300 px-5 py-3 outline-none transition focus:border-blue-600"
+          className="w-full rounded-xl border border-slate-300 px-5 py-3 outline-none focus:border-blue-600"
         />
 
         <button
           type="submit"
-          className="rounded-xl bg-blue-600 px-8 py-4 font-semibold text-white transition hover:bg-blue-700"
+          disabled={loading}
+          className="rounded-xl bg-blue-600 px-8 py-4 font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          Send Message
+          {loading ? "Sending..." : "Send Message"}
         </button>
+
       </form>
     </div>
   );
