@@ -186,13 +186,13 @@ const FeaturedProperties = () => {
                   <Button
                     to={`/properties/${property._id}`}
                     className="
-                      min-w-[180px]
+                      min-w-45
                       bg-blue-500
                       text-white
                       transition-colors
                       duration-200
-                      hover:!bg-blue-700
-                      focus:!bg-blue-700
+                      hover:bg-blue-700!
+                      focus:bg-blue-700!
                     "
                   >
                     View Details
@@ -215,8 +215,8 @@ const FeaturedProperties = () => {
               text-white
               transition-colors
               duration-200
-              hover:!bg-blue-700
-              focus:!bg-blue-700
+              hover:bg-blue-700!
+              focus:bg-blue-700!
             "
           >
             View All Properties

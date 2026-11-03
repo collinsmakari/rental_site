@@ -1,3 +1,4 @@
+
 import { Link } from "react-router-dom";
 
 const Button = ({
@@ -12,15 +13,18 @@ const Button = ({
     items-center
     justify-center
     rounded-xl
-    bg-orange-500
+    bg-blue-500
     px-6
     py-3
     font-semibold
     text-white
-    transition-all
+    transition-colors
     duration-300
-    
-    hover:shadow-lg
+    hover:!bg-blue-700
+    focus-visible:outline-none
+    focus-visible:ring-2
+    focus-visible:ring-blue-500
+    focus-visible:ring-offset-2
     ${className}
   `;
 
